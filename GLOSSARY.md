@@ -74,6 +74,10 @@ _Avoid_: Recipe
 A named measurement with a business meaning, a unit, limits, and membership in exactly one test step.
 _Avoid_: Parameter, test
 
+**CP Catalog**:
+The built-in set of CP Test Items with their units, default distributions, limits, and failure Soft Bins; versioned because exported data records which definitions produced it.
+_Avoid_: Test list
+
 **Numeric Test Item**:
 A test item that yields a measured value.
 _Avoid_: Parametric test
@@ -81,6 +85,14 @@ _Avoid_: Parametric test
 **Functional Test Item**:
 A test item that yields pass/fail against a pattern or condition.
 _Avoid_: Digital test
+
+**Spec Limits**:
+The product specification range for a Test Item, exported for analysis rather than used to decide pass/fail.
+_Avoid_: Product limits
+
+**Test Limits**:
+The limits the tester applies when deciding whether a Test Item passes; a result outside them fails that item.
+_Avoid_: Guardband limits
 
 **Bin**:
 The classification assigned to a die or FT unit after test.
@@ -92,6 +104,14 @@ The final disposition category of a die or FT unit, such as pass or a fail class
 **Soft Bin**:
 A finer outcome category, typically the failing test item or failure mode.
 _Avoid_: Sub-bin
+
+**Parametric Fail**:
+The Hard Bin class assigned when the first failing Test Item at CP is Numeric.
+_Avoid_: Param fail bin
+
+**Functional Fail**:
+The Hard Bin class assigned when the first failing Test Item at CP is Functional.
+_Avoid_: Func fail bin
 
 ### Correlation and variation
 

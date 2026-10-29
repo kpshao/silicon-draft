@@ -67,7 +67,45 @@ internal sealed class ConfigDocument
 
     public List<LotDocument>? Lots { get; init; }
 
+    public CpDocument? Cp { get; init; }
+
     public OutputDocument? Output { get; init; }
+}
+
+internal sealed class CpDocument
+{
+    public CpBinsDocument? Bins { get; init; }
+
+    public List<CpTestItemDocument>? TestItems { get; init; }
+}
+
+internal sealed class CpBinsDocument
+{
+    public int? PassHardBin { get; init; }
+
+    public int? PassSoftBin { get; init; }
+
+    public int? ParametricFailHardBin { get; init; }
+
+    public int? FunctionalFailHardBin { get; init; }
+}
+
+internal sealed class CpTestItemDocument
+{
+    public string? Name { get; init; }
+
+    public CpLimitsDocument? SpecLimits { get; init; }
+
+    public CpLimitsDocument? TestLimits { get; init; }
+
+    public int? FailSoftBin { get; init; }
+}
+
+internal sealed class CpLimitsDocument
+{
+    public double? Low { get; init; }
+
+    public double? High { get; init; }
 }
 
 internal sealed class ProductDocument

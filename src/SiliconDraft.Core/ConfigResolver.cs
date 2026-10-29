@@ -95,6 +95,7 @@ internal static class ConfigResolver
         }
 
         var wafer = ResolveWafer(document.Wafer, errors);
+        var cp = ResolveCp(document.Cp, errors);
 
         if (errors.Count > 0)
         {
@@ -109,10 +110,206 @@ internal static class ConfigResolver
             document.Lots!
                 .Select(lot => new LotConfig(lot.Id!.Trim(), lot.WaferCount!.Value))
                 .ToArray(),
+            cp,
             new OutputConfig(outputDirectory!));
 
         return ConfigValidationResult.Valid(resolved);
     }
+
+    private static CpConfig ResolveCp(CpDocument? cp, List<ConfigError> errors)
+    {
+        var bins = ResolveCpBins(cp?.Bins, errors);
+        var overrides = ResolveCpTestItems(cp?.TestItems, errors);
+
+        ValidateEffectiveSoftBins(bins, overrides, errors);
+
+        return new CpConfig(bins, overrides);
+    }
+
+    private static CpBins ResolveCpBins(CpBinsDocument? bins, List<ConfigError> errors)
+    {
+        var passHardBin = bins?.PassHardBin ?? CpBins.Default.PassHardBin;
+        var passSoftBin = bins?.PassSoftBin ?? CpBins.Default.PassSoftBin;
+        var parametricFailHardBin = bins?.ParametricFailHardBin ?? CpBins.Default.ParametricFailHardBin;
+        var functionalFailHardBin = bins?.FunctionalFailHardBin ?? CpBins.Default.FunctionalFailHardBin;
+
+        ValidateBinNumber(errors, "cp.bins.passHardBin", passHardBin);
+        ValidateBinNumber(errors, "cp.bins.passSoftBin", passSoftBin);
+        ValidateBinNumber(errors, "cp.bins.parametricFailHardBin", parametricFailHardBin);
+        ValidateBinNumber(errors, "cp.bins.functionalFailHardBin", functionalFailHardBin);
+
+        if (parametricFailHardBin == passHardBin)
+        {
+            errors.Add(new ConfigError(
+                "cp.bins.parametricFailHardBin", "must be distinct from cp.bins.passHardBin"));
+        }
+
+        if (functionalFailHardBin == passHardBin)
+        {
+            errors.Add(new ConfigError(
+                "cp.bins.functionalFailHardBin", "must be distinct from cp.bins.passHardBin"));
+        }
+
+        if (functionalFailHardBin == parametricFailHardBin)
+        {
+            errors.Add(new ConfigError(
+                "cp.bins.functionalFailHardBin",
+                "must be distinct from cp.bins.parametricFailHardBin"));
+        }
+
+        return new CpBins(passHardBin, passSoftBin, parametricFailHardBin, functionalFailHardBin);
+    }
+
+    private static List<CpTestItemOverride> ResolveCpTestItems(
+        List<CpTestItemDocument>? documents, List<ConfigError> errors)
+    {
+        var overrides = new List<CpTestItemOverride>();
+        if (documents is null)
+        {
+            return overrides;
+        }
+
+        var seenNames = new HashSet<string>(StringComparer.Ordinal);
+        for (var index = 0; index < documents.Count; index++)
+        {
+            var path = $"cp.testItems[{index}]";
+            var document = documents[index];
+            if (document is null)
+            {
+                errors.Add(new ConfigError(path, "required"));
+                continue;
+            }
+
+            var name = document.Name?.Trim();
+            if (string.IsNullOrEmpty(name))
+            {
+                errors.Add(new ConfigError($"{path}.name", "required"));
+                continue;
+            }
+
+            if (CpCatalog.Find(name) is null)
+            {
+                errors.Add(new ConfigError($"{path}.name", $"unknown CP test item '{name}'"));
+                continue;
+            }
+
+            if (!seenNames.Add(name))
+            {
+                errors.Add(new ConfigError($"{path}.name", $"duplicate CP test item '{name}'"));
+                continue;
+            }
+
+            var specLimits = ResolveLimits(document.SpecLimits, $"{path}.specLimits", errors);
+            var testLimits = ResolveLimits(document.TestLimits, $"{path}.testLimits", errors);
+
+            int? failSoftBin = null;
+            if (document.FailSoftBin is int configuredBin)
+            {
+                if (IsValidBinNumber(configuredBin))
+                {
+                    failSoftBin = configuredBin;
+                }
+                else
+                {
+                    errors.Add(new ConfigError(
+                        $"{path}.failSoftBin", "must be between 1 and 65535"));
+                }
+            }
+
+            overrides.Add(new CpTestItemOverride(name, specLimits, testLimits, failSoftBin));
+        }
+
+        return overrides;
+    }
+
+    private static CpLimits? ResolveLimits(
+        CpLimitsDocument? limits, string path, List<ConfigError> errors)
+    {
+        if (limits is null)
+        {
+            return null;
+        }
+
+        if (limits.Low is not double low)
+        {
+            errors.Add(new ConfigError($"{path}.low", "required"));
+        }
+        else if (!double.IsFinite(low))
+        {
+            errors.Add(new ConfigError($"{path}.low", "must be a finite number"));
+        }
+
+        if (limits.High is not double high)
+        {
+            errors.Add(new ConfigError($"{path}.high", "required"));
+        }
+        else if (!double.IsFinite(high))
+        {
+            errors.Add(new ConfigError($"{path}.high", "must be a finite number"));
+        }
+
+        if (limits.Low is double lower && limits.High is double upper &&
+            double.IsFinite(lower) && double.IsFinite(upper) && lower >= upper)
+        {
+            errors.Add(new ConfigError(path, "low must be less than high"));
+        }
+
+        return limits.Low is double l && limits.High is double h ? new CpLimits(l, h) : null;
+    }
+
+    private static void ValidateEffectiveSoftBins(
+        CpBins bins, List<CpTestItemOverride> overrides, List<ConfigError> errors)
+    {
+        var overridesByName = new Dictionary<string, (CpTestItemOverride Item, int Index)>(
+            StringComparer.Ordinal);
+        for (var index = 0; index < overrides.Count; index++)
+        {
+            overridesByName[overrides[index].Name] = (overrides[index], index);
+        }
+
+        var assigned = new Dictionary<int, (string ItemName, string? OverridePath)>();
+        foreach (var template in CpCatalog.DefaultItems)
+        {
+            var overrideInfo = overridesByName.GetValueOrDefault(template.Name);
+            var effectiveBin = overrideInfo.Item?.FailSoftBin ?? template.FailSoftBin;
+            var overridePath = overrideInfo.Item is null
+                ? null
+                : $"cp.testItems[{overrideInfo.Index}].failSoftBin";
+            var reportedOnOverride = overrideInfo.Item?.FailSoftBin is not null;
+
+            if (effectiveBin == bins.PassSoftBin)
+            {
+                errors.Add(new ConfigError(
+                    reportedOnOverride ? overridePath! : "cp.bins.passSoftBin",
+                    reportedOnOverride
+                        ? $"conflicts with cp.bins.passSoftBin ({bins.PassSoftBin})"
+                        : $"conflicts with the default fail soft bin of '{template.Name}' ({effectiveBin})"));
+                continue;
+            }
+
+            if (assigned.TryGetValue(effectiveBin, out var other))
+            {
+                errors.Add(new ConfigError(
+                    reportedOnOverride
+                        ? overridePath!
+                        : other.OverridePath ?? $"cp.testItems[{overrideInfo.Index}].failSoftBin",
+                    $"duplicate soft bin {effectiveBin}; already used by '{other.ItemName}'"));
+                continue;
+            }
+
+            assigned[effectiveBin] = (template.Name, reportedOnOverride ? overridePath : null);
+        }
+    }
+
+    private static void ValidateBinNumber(List<ConfigError> errors, string path, int value)
+    {
+        if (!IsValidBinNumber(value))
+        {
+            errors.Add(new ConfigError(path, "must be between 1 and 65535"));
+        }
+    }
+
+    private static bool IsValidBinNumber(int value) => value is >= 1 and <= 65535;
 
     private static WaferGeometry? ResolveWafer(WaferDocument? wafer, List<ConfigError> errors)
     {

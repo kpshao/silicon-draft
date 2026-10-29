@@ -103,7 +103,6 @@ internal static class DieMapGenerator
             dies,
             new DieCounts(
                 GrossDie: valid.Count,
-                NetDie: valid.Count,
                 PartialDieFound: partial.Count,
                 PartialDieRetained: retained)));
 

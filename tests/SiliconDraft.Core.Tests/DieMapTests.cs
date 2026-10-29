@@ -10,7 +10,6 @@ public sealed class DieMapTests
         var map = Generate(TestConfigs.Valid).SingleMap();
 
         Assert.Equal(2517, map.GrossDie);
-        Assert.Equal(2517, map.NetDie);
         Assert.Equal(336, map.PartialDieFound);
         Assert.Equal(0, map.PartialDieRetained);
         Assert.Equal(2517, map.Dies.Count);
@@ -28,7 +27,6 @@ public sealed class DieMapTests
         var map = Generate(TestConfigs.WithWafer(SmallGeometry("exclude"))).SingleMap();
 
         Assert.Equal(61, map.GrossDie);
-        Assert.Equal(61, map.NetDie);
         Assert.Equal(40, map.PartialDieFound);
         Assert.Equal(0, map.PartialDieRetained);
         Assert.Equal(61, map.Dies.Count);
@@ -45,7 +43,6 @@ public sealed class DieMapTests
         var retained = Generate(TestConfigs.WithWafer(SmallGeometry("retain"))).SingleMap();
 
         Assert.Equal(61, retained.GrossDie);
-        Assert.Equal(61, retained.NetDie);
         Assert.Equal(40, retained.PartialDieFound);
         Assert.Equal(40, retained.PartialDieRetained);
         Assert.Equal(101, retained.Dies.Count);

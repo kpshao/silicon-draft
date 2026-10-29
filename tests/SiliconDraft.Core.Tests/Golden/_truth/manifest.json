@@ -1,0 +1,239 @@
+{
+  "manifestSchemaVersion": 3,
+  "configSchemaVersion": 1,
+  "seed": 42,
+  "resolvedConfig": {
+    "schemaVersion": 1,
+    "product": {
+      "name": "DemoProduct"
+    },
+    "wafer": {
+      "diameterMm": 100,
+      "edgeExclusionMm": 0,
+      "notchAngleDeg": 270,
+      "dieWidthMm": 10,
+      "dieHeightMm": 10,
+      "scribeMm": 0,
+      "pitchWidthMm": 10,
+      "pitchHeightMm": 10,
+      "gridOffsetXMm": 0,
+      "gridOffsetYMm": 0,
+      "rotationDeg": 0,
+      "mirrorX": false,
+      "mirrorY": false,
+      "indexOrigin": "center",
+      "partialDiePolicy": "exclude"
+    },
+    "seed": 42,
+    "lots": [
+      {
+        "id": "LOT-0001",
+        "waferCount": 1
+      }
+    ],
+    "cp": {
+      "bins": {
+        "passHardBin": 1,
+        "passSoftBin": 1,
+        "parametricFailHardBin": 2,
+        "functionalFailHardBin": 3
+      },
+      "testItems": []
+    },
+    "output": {
+      "directory": "out"
+    }
+  },
+  "dataset": {
+    "product": "DemoProduct",
+    "lotCount": 1,
+    "waferCount": 1,
+    "grossDie": 61,
+    "netDie": 55,
+    "partialDie": 40,
+    "partialDieRetained": 0,
+    "cp": {
+      "catalogVersion": "cp-catalog-v1",
+      "testedDie": 61,
+      "passedDie": 55,
+      "yield": 0.901639,
+      "hardBins": [
+        {
+          "number": 1,
+          "name": "Pass",
+          "pass": true,
+          "count": 55
+        },
+        {
+          "number": 2,
+          "name": "Parametric Fail",
+          "pass": false,
+          "count": 6
+        },
+        {
+          "number": 3,
+          "name": "Functional Fail",
+          "pass": false,
+          "count": 0
+        }
+      ],
+      "softBins": [
+        {
+          "number": 1,
+          "name": "Pass",
+          "pass": true,
+          "count": 55
+        },
+        {
+          "number": 100,
+          "name": "Vt",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 101,
+          "name": "Idsat",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 102,
+          "name": "Iddq",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 103,
+          "name": "RdsOn",
+          "pass": false,
+          "count": 3
+        },
+        {
+          "number": 104,
+          "name": "Leakage",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 105,
+          "name": "Vf",
+          "pass": false,
+          "count": 3
+        },
+        {
+          "number": 200,
+          "name": "Scan",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 201,
+          "name": "Bist",
+          "pass": false,
+          "count": 0
+        }
+      ]
+    },
+    "lots": [
+      {
+        "lotId": "LOT-0001",
+        "waferCount": 1,
+        "grossDie": 61,
+        "netDie": 55,
+        "partialDie": 40,
+        "partialDieRetained": 0,
+        "cp": {
+          "catalogVersion": "cp-catalog-v1",
+          "testedDie": 61,
+          "passedDie": 55,
+          "yield": 0.901639,
+          "hardBins": [
+            {
+              "number": 1,
+              "name": "Pass",
+              "pass": true,
+              "count": 55
+            },
+            {
+              "number": 2,
+              "name": "Parametric Fail",
+              "pass": false,
+              "count": 6
+            },
+            {
+              "number": 3,
+              "name": "Functional Fail",
+              "pass": false,
+              "count": 0
+            }
+          ],
+          "softBins": [
+            {
+              "number": 1,
+              "name": "Pass",
+              "pass": true,
+              "count": 55
+            },
+            {
+              "number": 100,
+              "name": "Vt",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 101,
+              "name": "Idsat",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 102,
+              "name": "Iddq",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 103,
+              "name": "RdsOn",
+              "pass": false,
+              "count": 3
+            },
+            {
+              "number": 104,
+              "name": "Leakage",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 105,
+              "name": "Vf",
+              "pass": false,
+              "count": 3
+            },
+            {
+              "number": 200,
+              "name": "Scan",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 201,
+              "name": "Bist",
+              "pass": false,
+              "count": 0
+            }
+          ]
+        },
+        "wafers": [
+          {
+            "waferId": "LOT-0001-W01",
+            "grossDie": 61,
+            "netDie": 55,
+            "partialDie": 40,
+            "partialDieRetained": 0
+          }
+        ]
+      }
+    ]
+  }
+}

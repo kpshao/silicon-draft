@@ -7,7 +7,7 @@ namespace SiliconDraft.Core;
 /// <summary>Writes a Dataset's ground-truth manifest and per-lot Wafer Map CSVs.</summary>
 internal static class DatasetWriter
 {
-    public const int ManifestSchemaVersion = 2;
+    public const int ManifestSchemaVersion = 3;
     public const string TruthDirectoryName = "_truth";
     public const string ManifestFileName = "manifest.json";
 
@@ -24,11 +24,15 @@ internal static class DatasetWriter
         var waferMapPaths = dataset.Lots
             .Select(lot => Path.Combine(outputDirectory, WaferMapCsvWriter.FileName(lot.Id)))
             .ToArray();
+        var stdfPaths = dataset.Lots
+            .Select(lot => Path.Combine(outputDirectory, StdfCpWriter.FileName(lot.Id)))
+            .ToArray();
 
         if (!overwrite)
         {
             var existing = new[] { manifestPath }
                 .Concat(waferMapPaths)
+                .Concat(stdfPaths)
                 .FirstOrDefault(File.Exists);
             if (existing is not null)
             {
@@ -41,6 +45,7 @@ internal static class DatasetWriter
         for (var index = 0; index < dataset.Lots.Count; index++)
         {
             WaferMapCsvWriter.Write(waferMapPaths[index], dataset.Lots[index]);
+            StdfCpWriter.Write(stdfPaths[index], dataset, dataset.Lots[index]);
         }
 
         var manifest = new ManifestDocument(
@@ -54,7 +59,7 @@ internal static class DatasetWriter
         var json = JsonSerializer.Serialize(manifest, JsonOptions).ReplaceLineEndings("\n") + "\n";
         File.WriteAllText(manifestPath, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-        return ExportResult.Exported(manifestPath, waferMapPaths);
+        return ExportResult.Exported(manifestPath, waferMapPaths, stdfPaths);
     }
 
     private sealed record ManifestDocument(
@@ -72,20 +77,24 @@ internal static class DatasetWriter
         int NetDie,
         int PartialDie,
         int PartialDieRetained,
+        CpManifest Cp,
         IReadOnlyList<LotManifest> Lots)
     {
         public static DatasetManifest Create(Dataset dataset)
         {
-            var lots = dataset.Lots.Select(LotManifest.Create).ToArray();
+            var lots = dataset.Lots
+                .Select(lot => LotManifest.Create(lot, dataset.TestProgram))
+                .ToArray();
             var totals = dataset.DieTotals;
             return new DatasetManifest(
                 dataset.ProductName,
                 dataset.LotCount,
                 dataset.WaferCount,
                 totals.GrossDie,
-                totals.NetDie,
+                dataset.Cp.PassedDie,
                 totals.PartialDieFound,
                 totals.PartialDieRetained,
+                CpManifest.Create(dataset.Cp, dataset.TestProgram.CatalogVersion),
                 lots);
         }
     }
@@ -97,19 +106,22 @@ internal static class DatasetWriter
         int NetDie,
         int PartialDie,
         int PartialDieRetained,
+        CpManifest Cp,
         IReadOnlyList<WaferManifest> Wafers)
     {
-        public static LotManifest Create(Lot lot)
+        public static LotManifest Create(Lot lot, CpProgram program)
         {
             var totals = DieCounts.Sum(lot.Wafers.Select(wafer => wafer.DieMap.Counts));
             var wafers = lot.Wafers.Select(WaferManifest.Create).ToArray();
+            var cp = lot.GetCpSummary(program);
             return new LotManifest(
                 lot.Id,
                 wafers.Length,
                 totals.GrossDie,
-                totals.NetDie,
+                cp.PassedDie,
                 totals.PartialDieFound,
                 totals.PartialDieRetained,
+                CpManifest.Create(cp, program.CatalogVersion),
                 wafers);
         }
     }
@@ -127,9 +139,33 @@ internal static class DatasetWriter
             return new WaferManifest(
                 wafer.Id,
                 counts.GrossDie,
-                counts.NetDie,
+                wafer.NetDie,
                 counts.PartialDieFound,
                 counts.PartialDieRetained);
         }
     }
+
+    private sealed record CpManifest(
+        string CatalogVersion,
+        int TestedDie,
+        int PassedDie,
+        double Yield,
+        IReadOnlyList<BinManifest> HardBins,
+        IReadOnlyList<BinManifest> SoftBins)
+    {
+        public static CpManifest Create(CpSummary summary, string catalogVersion) =>
+            new(
+                catalogVersion,
+                summary.TestedDie,
+                summary.PassedDie,
+                summary.Yield,
+                summary.HardBins
+                    .Select(bin => new BinManifest(bin.Number, bin.Name, bin.Pass, bin.Count))
+                    .ToArray(),
+                summary.SoftBins
+                    .Select(bin => new BinManifest(bin.Number, bin.Name, bin.Pass, bin.Count))
+                    .ToArray());
+    }
+
+    private sealed record BinManifest(int Number, string Name, bool Pass, int Count);
 }
