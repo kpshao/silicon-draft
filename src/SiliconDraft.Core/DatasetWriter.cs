@@ -4,7 +4,8 @@ using System.Text.Json.Serialization;
 
 namespace SiliconDraft.Core;
 
-internal static class ManifestWriter
+/// <summary>Writes a Dataset's ground-truth manifest and per-lot Wafer Map CSVs.</summary>
+internal static class DatasetWriter
 {
     public const int ManifestSchemaVersion = 2;
     public const string TruthDirectoryName = "_truth";
@@ -76,14 +77,15 @@ internal static class ManifestWriter
         public static DatasetManifest Create(Dataset dataset)
         {
             var lots = dataset.Lots.Select(LotManifest.Create).ToArray();
+            var totals = dataset.DieTotals;
             return new DatasetManifest(
                 dataset.ProductName,
                 dataset.LotCount,
                 dataset.WaferCount,
-                lots.Sum(lot => lot.GrossDie),
-                lots.Sum(lot => lot.NetDie),
-                lots.Sum(lot => lot.PartialDie),
-                lots.Sum(lot => lot.PartialDieRetained),
+                totals.GrossDie,
+                totals.NetDie,
+                totals.PartialDieFound,
+                totals.PartialDieRetained,
                 lots);
         }
     }
@@ -99,21 +101,15 @@ internal static class ManifestWriter
     {
         public static LotManifest Create(Lot lot)
         {
-            var wafers = lot.Wafers
-                .Select(wafer => new WaferManifest(
-                    wafer.Id,
-                    wafer.DieMap.GrossDie,
-                    wafer.DieMap.NetDie,
-                    wafer.DieMap.PartialDieFound,
-                    wafer.DieMap.PartialDieRetained))
-                .ToArray();
+            var totals = DieCounts.Sum(lot.Wafers.Select(wafer => wafer.DieMap.Counts));
+            var wafers = lot.Wafers.Select(WaferManifest.Create).ToArray();
             return new LotManifest(
                 lot.Id,
                 wafers.Length,
-                wafers.Sum(wafer => wafer.GrossDie),
-                wafers.Sum(wafer => wafer.NetDie),
-                wafers.Sum(wafer => wafer.PartialDie),
-                wafers.Sum(wafer => wafer.PartialDieRetained),
+                totals.GrossDie,
+                totals.NetDie,
+                totals.PartialDieFound,
+                totals.PartialDieRetained,
                 wafers);
         }
     }
@@ -123,5 +119,17 @@ internal static class ManifestWriter
         int GrossDie,
         int NetDie,
         int PartialDie,
-        int PartialDieRetained);
+        int PartialDieRetained)
+    {
+        public static WaferManifest Create(Wafer wafer)
+        {
+            var counts = wafer.DieMap.Counts;
+            return new WaferManifest(
+                wafer.Id,
+                counts.GrossDie,
+                counts.NetDie,
+                counts.PartialDieFound,
+                counts.PartialDieRetained);
+        }
+    }
 }

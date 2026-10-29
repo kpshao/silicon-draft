@@ -10,7 +10,7 @@ public sealed class WaferMapExportTests
     public void Export_WritesWaferMapCsvThatAgreesWithManifestCounts()
     {
         using var workspace = new TestWorkspace();
-        var dataset = Generate(SmallGeometry("retain"), out _);
+        var dataset = Generate(SmallGeometry("retain"));
         var outputDirectory = workspace.PathFor("dataset");
 
         var result = new GenerationPipeline().Export(dataset, outputDirectory);
@@ -66,7 +66,7 @@ public sealed class WaferMapExportTests
     public void Export_WithExcludePolicy_WritesOnlyValidDie()
     {
         using var workspace = new TestWorkspace();
-        var dataset = Generate(SmallGeometry("exclude"), out _);
+        var dataset = Generate(SmallGeometry("exclude"));
         var outputDirectory = workspace.PathFor("dataset");
 
         var result = new GenerationPipeline().Export(dataset, outputDirectory);
@@ -89,7 +89,6 @@ public sealed class WaferMapExportTests
         using var workspace = new TestWorkspace();
         var dataset = Generate(
             SmallGeometry("exclude"),
-            out _,
             lotsJson: """[ { "id": "LOT-0001", "waferCount": 2 } ]""");
         var outputDirectory = workspace.PathFor("dataset");
 
@@ -113,7 +112,6 @@ public sealed class WaferMapExportTests
         using var workspace = new TestWorkspace();
         var dataset = Generate(
             SmallGeometry("exclude"),
-            out _,
             lotsJson: """
                 [ { "id": "LOT-0001", "waferCount": 1 }, { "id": "LOT-0002", "waferCount": 1 } ]
                 """);
@@ -137,7 +135,7 @@ public sealed class WaferMapExportTests
     {
         using var workspace = new TestWorkspace();
         var pipeline = new GenerationPipeline();
-        var dataset = Generate(SmallGeometry("retain"), out _);
+        var dataset = Generate(SmallGeometry("retain"));
 
         var first = pipeline.Export(dataset, workspace.PathFor("run-a"));
         var second = pipeline.Export(dataset, workspace.PathFor("run-b"));
@@ -156,7 +154,7 @@ public sealed class WaferMapExportTests
     public void Export_WhenWaferMapAlreadyExists_RequiresOverwriteConfirmation()
     {
         using var workspace = new TestWorkspace();
-        var dataset = Generate(SmallGeometry("exclude"), out _);
+        var dataset = Generate(SmallGeometry("exclude"));
         var outputDirectory = workspace.PathFor("dataset");
         Directory.CreateDirectory(outputDirectory);
         var waferMapPath = Path.Combine(outputDirectory, "LOT-0001_wafermap.csv");
@@ -182,16 +180,14 @@ public sealed class WaferMapExportTests
         }
         """;
 
-    private static Dataset Generate(
-        string waferJson, out ResolvedConfig config, string? lotsJson = null)
+    private static Dataset Generate(string waferJson, string? lotsJson = null)
     {
         using var workspace = new TestWorkspace();
         var pipeline = new GenerationPipeline();
         var json = lotsJson is null
             ? TestConfigs.WithWafer(waferJson)
             : TestConfigs.WithWafer(waferJson, lotsJson);
-        config = pipeline.Validate(workspace.WriteConfig(json)).Config!;
-        return pipeline.Generate(config);
+        return pipeline.Generate(pipeline.Validate(workspace.WriteConfig(json)).Config!);
     }
 
     private static List<WaferMapRow> ReadWaferMap(string path)

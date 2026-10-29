@@ -150,16 +150,7 @@ internal static class ConfigResolver
         double pitchHeight;
         if (wafer?.Die?.Pitch is { } pitch)
         {
-            if (pitch.WidthMm is null)
-            {
-                errors.Add(new ConfigError("wafer.die.pitch.widthMm", "required"));
-            }
-
-            if (pitch.HeightMm is null)
-            {
-                errors.Add(new ConfigError("wafer.die.pitch.heightMm", "required"));
-            }
-
+            // Each axis may be overridden independently; the other keeps the default.
             pitchWidth = pitch.WidthMm ?? dieWidth + scribe;
             pitchHeight = pitch.HeightMm ?? dieHeight + scribe;
             if (pitch.WidthMm is double configuredWidth)

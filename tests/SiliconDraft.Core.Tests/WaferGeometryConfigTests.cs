@@ -101,6 +101,29 @@ public sealed class WaferGeometryConfigTests
         Assert.Equal(5.08, geometry.PitchHeightMm, 6);
     }
 
+    [Fact]
+    public void Validate_WithOneAxisPitchOverride_DefaultsTheOtherAxis()
+    {
+        using var workspace = new TestWorkspace();
+        var configPath = workspace.WriteConfig(TestConfigs.WithWafer(
+            """
+            {
+              "die": {
+                "widthMm": 5,
+                "heightMm": 6,
+                "scribeMm": 0.1,
+                "pitch": { "widthMm": 5.5 }
+              }
+            }
+            """));
+
+        var result = new GenerationPipeline().Validate(configPath);
+
+        Assert.True(result.IsValid);
+        Assert.Equal(5.5, result.Config!.Wafer.PitchWidthMm, 6);
+        Assert.Equal(6.1, result.Config.Wafer.PitchHeightMm, 6);
+    }
+
     [Theory]
     [InlineData("""{ "diameterMm": 0 }""", "wafer.diameterMm", "greater than 0")]
     [InlineData("""{ "diameterMm": -300 }""", "wafer.diameterMm", "greater than 0")]
@@ -112,8 +135,6 @@ public sealed class WaferGeometryConfigTests
     [InlineData("""{ "die": { "heightMm": -5 } }""", "wafer.die.heightMm", "greater than 0")]
     [InlineData("""{ "die": { "scribeMm": -0.01 } }""", "wafer.die.scribeMm", "0 or greater")]
     [InlineData("""{ "die": { "widthMm": 5, "pitch": { "widthMm": 4, "heightMm": 5 } } }""", "wafer.die.pitch.widthMm", "at least")]
-    [InlineData("""{ "die": { "pitch": { "widthMm": 5 } } }""", "wafer.die.pitch.heightMm", "required")]
-    [InlineData("""{ "die": { "pitch": { "heightMm": 5 } } }""", "wafer.die.pitch.widthMm", "required")]
     [InlineData("""{ "grid": { "rotationDeg": 45 } }""", "wafer.grid.rotationDeg", "0, 90, 180")]
     [InlineData("""{ "grid": { "indexOrigin": "middle" } }""", "wafer.grid.indexOrigin", "bottomLeft")]
     [InlineData("""{ "partialDiePolicy": "keep" }""", "wafer.partialDiePolicy", "retain")]

@@ -9,7 +9,7 @@ internal static class DieMapGenerator
     public static DieMapResult TryGenerate(WaferGeometry geometry)
     {
         var radius = geometry.DiameterMm / 2;
-        var usableRadius = radius - geometry.EdgeExclusionMm;
+        var usableRadius = geometry.UsableRadiusMm;
         var halfWidth = geometry.DieWidthMm / 2;
         var halfHeight = geometry.DieHeightMm / 2;
         var halfDiagonal = Math.Sqrt(halfWidth * halfWidth + halfHeight * halfHeight);
@@ -30,26 +30,29 @@ internal static class DieMapGenerator
         var rowBounds = IndexBounds(rowStepX, rowStepY, originX, originY, limit);
         if (columnBounds is null || rowBounds is null)
         {
-            return DieMapResult.Failed(
-                $"die grid produces more than {MaxDiePositions} die positions");
+            return TooManyPositions();
         }
 
-        var (columnMin, columnMax) = columnBounds.Value;
-        var (rowMin, rowMax) = rowBounds.Value;
-        var candidateCount = (long)(columnMax - columnMin + 1) * (rowMax - rowMin + 1);
+        var columns = columnBounds.Value;
+        var rows = rowBounds.Value;
+        if (columns.IsEmpty || rows.IsEmpty)
+        {
+            return DieMapResult.Failed("geometry produces no valid die");
+        }
+
+        var candidateCount = columns.Length * rows.Length;
         if (candidateCount > MaxDiePositions)
         {
-            return DieMapResult.Failed(
-                $"die grid produces more than {MaxDiePositions} die positions");
+            return TooManyPositions();
         }
 
         var valid = new List<LatticeDie>();
         var partial = new List<LatticeDie>();
-        for (var row = rowMin; row <= rowMax; row++)
+        for (var row = rows.Min; row <= rows.Max; row++)
         {
             var rowOriginX = originX + row * rowStepX;
             var rowOriginY = originY + row * rowStepY;
-            for (var column = columnMin; column <= columnMax; column++)
+            for (var column = columns.Min; column <= columns.Max; column++)
             {
                 var centerX = rowOriginX + column * columnStepX;
                 var centerY = rowOriginY + column * columnStepY;
@@ -98,10 +101,11 @@ internal static class DieMapGenerator
 
         return DieMapResult.Succeeded(new DieMap(
             dies,
-            grossDie: valid.Count,
-            netDie: valid.Count,
-            partialDieFound: partial.Count,
-            partialDieRetained: retained));
+            new DieCounts(
+                GrossDie: valid.Count,
+                NetDie: valid.Count,
+                PartialDieFound: partial.Count,
+                PartialDieRetained: retained)));
 
         Die MakeDie(LatticeDie latticeDie, DieDisposition disposition)
         {
@@ -168,7 +172,11 @@ internal static class DieMapGenerator
         };
     }
 
-    private static (int Min, int Max)? IndexBounds(
+    /// <summary>
+    /// Returns the lattice indices whose centers can fall within <paramref name="limit"/>
+    /// of the wafer center, or <c>null</c> when the grid has too many candidate positions.
+    /// </summary>
+    private static IndexRange? IndexBounds(
         double stepX, double stepY, double originX, double originY, double limit)
     {
         var coefficient = stepX != 0 ? stepX : stepY;
@@ -182,22 +190,25 @@ internal static class DieMapGenerator
             return null;
         }
 
-        // A lattice entirely far from the wafer contributes no candidate; returning an
-        // empty range lets the caller report "no valid die" instead of overflowing indices.
+        // A lattice entirely far from the wafer contributes no candidate; an empty range
+        // lets the caller report "no valid die" instead of overflowing indices.
         if (low <= long.MinValue || high >= long.MaxValue)
         {
-            return (0, -1);
+            return IndexRange.Empty;
         }
 
         var min = (long)Math.Floor(low) - 1;
         var max = (long)Math.Ceiling(high) + 1;
         if (min < int.MinValue || max > int.MaxValue)
         {
-            return (0, -1);
+            return IndexRange.Empty;
         }
 
-        return ((int)min, (int)max);
+        return new IndexRange((int)min, (int)max);
     }
+
+    private static DieMapResult TooManyPositions() =>
+        DieMapResult.Failed($"die grid produces more than {MaxDiePositions} die positions");
 
     private static double MaxCornerDistanceSquared(
         double centerX, double centerY, double halfWidth, double halfHeight, int rotationDeg)
@@ -256,6 +267,15 @@ internal static class DieMapGenerator
     private static double Square(double value) => value * value;
 
     private readonly record struct LatticeDie(double X, double Y);
+
+    private readonly record struct IndexRange(int Min, int Max)
+    {
+        public static IndexRange Empty => new(0, -1);
+
+        public bool IsEmpty => Min > Max;
+
+        public long Length => (long)Max - Min + 1;
+    }
 }
 
 internal readonly record struct DieMapResult(DieMap? Map, string? Error)

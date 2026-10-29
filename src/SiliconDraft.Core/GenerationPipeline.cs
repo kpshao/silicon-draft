@@ -11,5 +11,5 @@ public sealed class GenerationPipeline
     public Dataset Generate(ResolvedConfig config) => DatasetGenerator.Generate(config);
 
     public ExportResult Export(Dataset dataset, string outputDirectory, bool overwrite = false) =>
-        ManifestWriter.Write(dataset, outputDirectory, overwrite);
+        DatasetWriter.Write(dataset, outputDirectory, overwrite);
 }

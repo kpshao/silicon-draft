@@ -5,18 +5,10 @@ namespace SiliconDraft.Core;
 /// </summary>
 public sealed class DieMap
 {
-    internal DieMap(
-        IReadOnlyList<Die> dies,
-        int grossDie,
-        int netDie,
-        int partialDieFound,
-        int partialDieRetained)
+    internal DieMap(IReadOnlyList<Die> dies, DieCounts counts)
     {
         Dies = dies;
-        GrossDie = grossDie;
-        NetDie = netDie;
-        PartialDieFound = partialDieFound;
-        PartialDieRetained = partialDieRetained;
+        Counts = counts;
     }
 
     /// <summary>
@@ -25,18 +17,20 @@ public sealed class DieMap
     /// </summary>
     public IReadOnlyList<Die> Dies { get; }
 
+    public DieCounts Counts { get; }
+
     /// <summary>Number of valid die positions.</summary>
-    public int GrossDie { get; }
+    public int GrossDie => Counts.GrossDie;
 
     /// <summary>
     /// Number of die that pass CP. The CP step does not exist yet, so every valid die passes.
     /// </summary>
-    public int NetDie { get; }
+    public int NetDie => Counts.NetDie;
 
     /// <summary>Partial Die positions that intersect the physical wafer, whether retained or not.</summary>
-    public int PartialDieFound { get; }
+    public int PartialDieFound => Counts.PartialDieFound;
 
-    public int PartialDieRetained { get; }
+    public int PartialDieRetained => Counts.PartialDieRetained;
 }
 
 public sealed record Die(

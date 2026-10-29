@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using SiliconDraft.Core;
 
 namespace SiliconDraft.Cli;
@@ -45,61 +46,36 @@ public static class CliApplication
 
     private static int RunGenerate(string[] args, TextWriter stdout, TextWriter stderr)
     {
-        string? configPath = null;
-        string? outputDirectory = null;
-        var overwrite = false;
-
-        for (var index = 0; index < args.Length; index++)
+        if (!TryParseArguments(args, allowGenerateOptions: true, stderr, out var arguments))
         {
-            switch (args[index])
-            {
-                case "-c" or "--config":
-                    if (!TryReadValue(args, ref index, "--config", stderr, out configPath))
-                    {
-                        return ExitInvalidInput;
-                    }
-
-                    break;
-                case "-o" or "--output":
-                    if (!TryReadValue(args, ref index, "--output", stderr, out outputDirectory))
-                    {
-                        return ExitInvalidInput;
-                    }
-
-                    break;
-                case "--overwrite":
-                    overwrite = true;
-                    break;
-                case "-h" or "--help":
-                    PrintUsage(stdout);
-                    return ExitSuccess;
-                default:
-                    stderr.WriteLine($"error: unknown option '{args[index]}'");
-                    PrintUsage(stderr);
-                    return ExitInvalidInput;
-            }
+            return ExitInvalidInput;
         }
 
-        if (configPath is null)
+        if (arguments.ShowHelp)
         {
-            stderr.WriteLine("error: missing required option --config");
-            PrintUsage(stderr);
+            PrintUsage(stdout);
+            return ExitSuccess;
+        }
+
+        if (arguments.ConfigPath is null)
+        {
+            PrintMissingConfig(stderr);
             return ExitInvalidInput;
         }
 
         try
         {
             var pipeline = new GenerationPipeline();
-            if (!TryLoadConfig(pipeline, configPath, stderr, out var config, out var exitCode))
+            if (!TryLoadConfig(pipeline, arguments.ConfigPath, stderr, out var config, out var exitCode))
             {
                 return exitCode;
             }
 
             var dataset = pipeline.Generate(config!);
             var destination = Path.GetFullPath(
-                outputDirectory ??
-                ConfigPaths.ResolveOutputDirectory(config!.Output.Directory, configPath));
-            var export = pipeline.Export(dataset, destination, overwrite);
+                arguments.OutputDirectory ??
+                ConfigPaths.ResolveOutputDirectory(config!.Output.Directory, arguments.ConfigPath));
+            var export = pipeline.Export(dataset, destination, arguments.Overwrite);
             if (!export.Success)
             {
                 stderr.WriteLine($"error: {export.Error}");
@@ -125,40 +101,27 @@ public static class CliApplication
 
     private static int RunPreview(string[] args, TextWriter stdout, TextWriter stderr)
     {
-        string? configPath = null;
-
-        for (var index = 0; index < args.Length; index++)
+        if (!TryParseArguments(args, allowGenerateOptions: false, stderr, out var arguments))
         {
-            switch (args[index])
-            {
-                case "-c" or "--config":
-                    if (!TryReadValue(args, ref index, "--config", stderr, out configPath))
-                    {
-                        return ExitInvalidInput;
-                    }
-
-                    break;
-                case "-h" or "--help":
-                    PrintUsage(stdout);
-                    return ExitSuccess;
-                default:
-                    stderr.WriteLine($"error: unknown option '{args[index]}'");
-                    PrintUsage(stderr);
-                    return ExitInvalidInput;
-            }
+            return ExitInvalidInput;
         }
 
-        if (configPath is null)
+        if (arguments.ShowHelp)
         {
-            stderr.WriteLine("error: missing required option --config");
-            PrintUsage(stderr);
+            PrintUsage(stdout);
+            return ExitSuccess;
+        }
+
+        if (arguments.ConfigPath is null)
+        {
+            PrintMissingConfig(stderr);
             return ExitInvalidInput;
         }
 
         try
         {
             var pipeline = new GenerationPipeline();
-            if (!TryLoadConfig(pipeline, configPath, stderr, out var config, out var exitCode))
+            if (!TryLoadConfig(pipeline, arguments.ConfigPath, stderr, out var config, out var exitCode))
             {
                 return exitCode;
             }
@@ -171,6 +134,58 @@ public static class CliApplication
             stderr.WriteLine($"error: {ex.Message}");
             return ExitRuntimeError;
         }
+    }
+
+    /// <summary>
+    /// Parses the options shared by both commands. <paramref name="allowGenerateOptions"/>
+    /// rejects <c>--output</c> and <c>--overwrite</c> for commands that write no files.
+    /// </summary>
+    private static bool TryParseArguments(
+        string[] args,
+        bool allowGenerateOptions,
+        TextWriter stderr,
+        out CommandArguments arguments)
+    {
+        string? configPath = null;
+        string? outputDirectory = null;
+        var overwrite = false;
+
+        for (var index = 0; index < args.Length; index++)
+        {
+            switch (args[index])
+            {
+                case "-c" or "--config":
+                    if (!TryReadValue(args, ref index, "--config", stderr, out configPath))
+                    {
+                        arguments = CommandArguments.None;
+                        return false;
+                    }
+
+                    break;
+                case "-o" or "--output" when allowGenerateOptions:
+                    if (!TryReadValue(args, ref index, "--output", stderr, out outputDirectory))
+                    {
+                        arguments = CommandArguments.None;
+                        return false;
+                    }
+
+                    break;
+                case "--overwrite" when allowGenerateOptions:
+                    overwrite = true;
+                    break;
+                case "-h" or "--help":
+                    arguments = new CommandArguments(null, null, false, ShowHelp: true);
+                    return true;
+                default:
+                    stderr.WriteLine($"error: unknown option '{args[index]}'");
+                    PrintUsage(stderr);
+                    arguments = CommandArguments.None;
+                    return false;
+            }
+        }
+
+        arguments = new CommandArguments(configPath, outputDirectory, overwrite, ShowHelp: false);
+        return true;
     }
 
     private static bool TryLoadConfig(
@@ -205,7 +220,8 @@ public static class CliApplication
     private static void PrintPreview(Dataset dataset, TextWriter writer)
     {
         var geometry = dataset.Config.Wafer;
-        var map = dataset.Lots[0].Wafers[0].DieMap;
+        var perWafer = dataset.DieMap.Counts;
+        var totals = dataset.DieTotals;
 
         writer.WriteLine($"Product: {dataset.ProductName}");
         writer.WriteLine($"Lots: {dataset.LotCount}");
@@ -223,16 +239,14 @@ public static class CliApplication
             $"  Grid offset: {Number(geometry.GridOffsetXMm)}, {Number(geometry.GridOffsetYMm)} mm");
         writer.WriteLine($"  Rotation: {geometry.RotationDeg}°");
         writer.WriteLine($"  Mirror: {MirrorLabel(geometry)}");
-        writer.WriteLine($"  Die index origin: {IndexOriginLabel(geometry.IndexOrigin)}");
-        writer.WriteLine($"  Partial die policy: {PartialDiePolicyLabel(geometry.PartialDiePolicy)}");
+        writer.WriteLine($"  Die index origin: {ConfigName(geometry.IndexOrigin)}");
+        writer.WriteLine($"  Partial die policy: {ConfigName(geometry.PartialDiePolicy)}");
         writer.WriteLine();
         writer.WriteLine("Die map:");
+        writer.WriteLine($"  Gross die: {perWafer.GrossDie} per wafer, {totals.GrossDie} total");
+        writer.WriteLine($"  Net die: {perWafer.NetDie} per wafer, {totals.NetDie} total");
         writer.WriteLine(
-            $"  Gross die: {map.GrossDie} per wafer, {map.GrossDie * dataset.WaferCount} total");
-        writer.WriteLine(
-            $"  Net die: {map.NetDie} per wafer, {map.NetDie * dataset.WaferCount} total");
-        writer.WriteLine(
-            $"  Partial die: {map.PartialDieFound} per wafer, {map.PartialDieFound * dataset.WaferCount} total (retained: {map.PartialDieRetained})");
+            $"  Partial die: {perWafer.PartialDieFound} per wafer, {totals.PartialDieFound} total (retained: {perWafer.PartialDieRetained})");
     }
 
     private static string MirrorLabel(WaferGeometry geometry) => (geometry.MirrorX, geometry.MirrorY) switch
@@ -243,22 +257,8 @@ public static class CliApplication
         _ => "none",
     };
 
-    private static string IndexOriginLabel(DieIndexOrigin indexOrigin) => indexOrigin switch
-    {
-        DieIndexOrigin.Center => "center",
-        DieIndexOrigin.BottomLeft => "bottomLeft",
-        DieIndexOrigin.TopLeft => "topLeft",
-        DieIndexOrigin.TopRight => "topRight",
-        DieIndexOrigin.BottomRight => "bottomRight",
-        _ => throw new ArgumentOutOfRangeException(nameof(indexOrigin)),
-    };
-
-    private static string PartialDiePolicyLabel(PartialDiePolicy policy) => policy switch
-    {
-        PartialDiePolicy.Exclude => "exclude",
-        PartialDiePolicy.Retain => "retain",
-        _ => throw new ArgumentOutOfRangeException(nameof(policy)),
-    };
+    private static string ConfigName<TEnum>(TEnum value) where TEnum : struct, Enum =>
+        JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
 
     private static string Number(double value) =>
         value.ToString("0.####", CultureInfo.InvariantCulture);
@@ -282,6 +282,12 @@ public static class CliApplication
 
     private static bool IsHelp(string argument) => argument is "-h" or "--help";
 
+    private static void PrintMissingConfig(TextWriter stderr)
+    {
+        stderr.WriteLine("error: missing required option --config");
+        PrintUsage(stderr);
+    }
+
     private static void PrintUsage(TextWriter writer)
     {
         writer.WriteLine("SiliconDraft generates synthetic CP/FT/WAT datasets with known ground truth.");
@@ -303,5 +309,14 @@ public static class CliApplication
         writer.WriteLine("  1  runtime error");
         writer.WriteLine("  2  invalid configuration or arguments");
         writer.WriteLine("  3  verification failure");
+    }
+
+    private sealed record CommandArguments(
+        string? ConfigPath,
+        string? OutputDirectory,
+        bool Overwrite,
+        bool ShowHelp)
+    {
+        public static CommandArguments None { get; } = new(null, null, false, false);
     }
 }
