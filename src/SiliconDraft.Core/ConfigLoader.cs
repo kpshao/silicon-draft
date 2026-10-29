@@ -61,6 +61,8 @@ internal sealed class ConfigDocument
 
     public ProductDocument? Product { get; init; }
 
+    public WaferDocument? Wafer { get; init; }
+
     public long? Seed { get; init; }
 
     public List<LotDocument>? Lots { get; init; }
@@ -71,6 +73,59 @@ internal sealed class ConfigDocument
 internal sealed class ProductDocument
 {
     public string? Name { get; init; }
+}
+
+internal sealed class WaferDocument
+{
+    public double? DiameterMm { get; init; }
+
+    public double? EdgeExclusionMm { get; init; }
+
+    public double? NotchAngleDeg { get; init; }
+
+    public DieDocument? Die { get; init; }
+
+    public GridDocument? Grid { get; init; }
+
+    public string? PartialDiePolicy { get; init; }
+}
+
+internal sealed class DieDocument
+{
+    public double? WidthMm { get; init; }
+
+    public double? HeightMm { get; init; }
+
+    public double? ScribeMm { get; init; }
+
+    public PitchDocument? Pitch { get; init; }
+}
+
+internal sealed class PitchDocument
+{
+    public double? WidthMm { get; init; }
+
+    public double? HeightMm { get; init; }
+}
+
+internal sealed class GridDocument
+{
+    public OffsetDocument? OffsetMm { get; init; }
+
+    public int? RotationDeg { get; init; }
+
+    public bool? MirrorX { get; init; }
+
+    public bool? MirrorY { get; init; }
+
+    public string? IndexOrigin { get; init; }
+}
+
+internal sealed class OffsetDocument
+{
+    public double? X { get; init; }
+
+    public double? Y { get; init; }
 }
 
 internal sealed class LotDocument

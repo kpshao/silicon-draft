@@ -106,6 +106,21 @@ public sealed class ConfigValidationTests
           "schemaVersion": 1,
           "product": { "name": "DemoProduct" },
           "seed": 42,
+          "lots": [
+            { "id": "LOT-0001", "waferCount": 1 },
+            { "id": "lot-0001", "waferCount": 1 }
+          ],
+          "output": { "directory": "out" }
+        }
+        """,
+        "lots[1].id",
+        "duplicate")]
+    [InlineData(
+        """
+        {
+          "schemaVersion": 1,
+          "product": { "name": "DemoProduct" },
+          "seed": 42,
           "lots": [ { "id": "LOT-0001", "waferCount": 0 } ],
           "output": { "directory": "out" }
         }
@@ -182,6 +197,33 @@ public sealed class ConfigValidationTests
         Assert.Equal(ConfigFailureKind.InvalidConfiguration, result.FailureKind);
         var error = Assert.Single(result.Errors, error => error.Path == expectedPath);
         Assert.Contains(expectedMessagePart, error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("../escape")]
+    [InlineData("lot/one")]
+    [InlineData("lot one")]
+    [InlineData("lot,one")]
+    [InlineData(".hidden")]
+    public void Validate_WithUnsafeLotId_IsRejected(string lotId)
+    {
+        using var workspace = new TestWorkspace();
+        var configPath = workspace.WriteConfig(
+            $$"""
+            {
+              "schemaVersion": 1,
+              "product": { "name": "DemoProduct" },
+              "seed": 42,
+              "lots": [ { "id": "{{lotId}}", "waferCount": 1 } ],
+              "output": { "directory": "out" }
+            }
+            """);
+
+        var result = new GenerationPipeline().Validate(configPath);
+
+        Assert.False(result.IsValid);
+        var error = Assert.Single(result.Errors, error => error.Path == "lots[0].id");
+        Assert.Contains("letters", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

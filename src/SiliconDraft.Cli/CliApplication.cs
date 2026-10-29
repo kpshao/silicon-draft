@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.Json;
 using SiliconDraft.Core;
 
 namespace SiliconDraft.Cli;
@@ -27,17 +29,122 @@ public static class CliApplication
             return ExitSuccess;
         }
 
-        if (args[0] != "generate")
+        return args[0] switch
         {
-            stderr.WriteLine($"error: unknown command '{args[0]}'");
-            PrintUsage(stderr);
-            return ExitInvalidInput;
-        }
+            "generate" => RunGenerate(args[1..], stdout, stderr),
+            "preview" => RunPreview(args[1..], stdout, stderr),
+            _ => UnknownCommand(args[0], stderr),
+        };
+    }
 
-        return RunGenerate(args[1..], stdout, stderr);
+    private static int UnknownCommand(string command, TextWriter stderr)
+    {
+        stderr.WriteLine($"error: unknown command '{command}'");
+        PrintUsage(stderr);
+        return ExitInvalidInput;
     }
 
     private static int RunGenerate(string[] args, TextWriter stdout, TextWriter stderr)
+    {
+        if (!TryParseArguments(args, allowGenerateOptions: true, stderr, out var arguments))
+        {
+            return ExitInvalidInput;
+        }
+
+        if (arguments.ShowHelp)
+        {
+            PrintUsage(stdout);
+            return ExitSuccess;
+        }
+
+        if (arguments.ConfigPath is null)
+        {
+            PrintMissingConfig(stderr);
+            return ExitInvalidInput;
+        }
+
+        try
+        {
+            var pipeline = new GenerationPipeline();
+            if (!TryLoadConfig(pipeline, arguments.ConfigPath, stderr, out var config, out var exitCode))
+            {
+                return exitCode;
+            }
+
+            var dataset = pipeline.Generate(config!);
+            var destination = Path.GetFullPath(
+                arguments.OutputDirectory ??
+                ConfigPaths.ResolveOutputDirectory(config!.Output.Directory, arguments.ConfigPath));
+            var export = pipeline.Export(dataset, destination, arguments.Overwrite);
+            if (!export.Success)
+            {
+                stderr.WriteLine($"error: {export.Error}");
+                return ExitRuntimeError;
+            }
+
+            stdout.WriteLine(
+                $"Generated dataset '{dataset.ProductName}' ({Quantity(dataset.LotCount, "lot")}, {Quantity(dataset.WaferCount, "wafer")})");
+            stdout.WriteLine($"Manifest: {export.ManifestPath}");
+            foreach (var waferMapPath in export.WaferMapPaths)
+            {
+                stdout.WriteLine($"Wafer map: {waferMapPath}");
+            }
+
+            return ExitSuccess;
+        }
+        catch (Exception ex)
+        {
+            stderr.WriteLine($"error: {ex.Message}");
+            return ExitRuntimeError;
+        }
+    }
+
+    private static int RunPreview(string[] args, TextWriter stdout, TextWriter stderr)
+    {
+        if (!TryParseArguments(args, allowGenerateOptions: false, stderr, out var arguments))
+        {
+            return ExitInvalidInput;
+        }
+
+        if (arguments.ShowHelp)
+        {
+            PrintUsage(stdout);
+            return ExitSuccess;
+        }
+
+        if (arguments.ConfigPath is null)
+        {
+            PrintMissingConfig(stderr);
+            return ExitInvalidInput;
+        }
+
+        try
+        {
+            var pipeline = new GenerationPipeline();
+            if (!TryLoadConfig(pipeline, arguments.ConfigPath, stderr, out var config, out var exitCode))
+            {
+                return exitCode;
+            }
+
+            PrintPreview(pipeline.Generate(config!), stdout);
+            return ExitSuccess;
+        }
+        catch (Exception ex)
+        {
+            stderr.WriteLine($"error: {ex.Message}");
+            return ExitRuntimeError;
+        }
+    }
+
+    /// <summary>
+    /// Parses the options shared by both commands. <paramref name="allowGenerateOptions"/>
+    /// rejects <c>--output</c> and <c>--overwrite</c> for commands that write no files.
+    /// </summary>
+    private static bool TryParseArguments(
+        string[] args,
+        bool allowGenerateOptions,
+        TextWriter stderr,
+        out CommandArguments arguments)
     {
         string? configPath = null;
         string? outputDirectory = null;
@@ -50,77 +157,111 @@ public static class CliApplication
                 case "-c" or "--config":
                     if (!TryReadValue(args, ref index, "--config", stderr, out configPath))
                     {
-                        return ExitInvalidInput;
+                        arguments = CommandArguments.None;
+                        return false;
                     }
 
                     break;
-                case "-o" or "--output":
+                case "-o" or "--output" when allowGenerateOptions:
                     if (!TryReadValue(args, ref index, "--output", stderr, out outputDirectory))
                     {
-                        return ExitInvalidInput;
+                        arguments = CommandArguments.None;
+                        return false;
                     }
 
                     break;
-                case "--overwrite":
+                case "--overwrite" when allowGenerateOptions:
                     overwrite = true;
                     break;
                 case "-h" or "--help":
-                    PrintUsage(stdout);
-                    return ExitSuccess;
+                    arguments = new CommandArguments(null, null, false, ShowHelp: true);
+                    return true;
                 default:
                     stderr.WriteLine($"error: unknown option '{args[index]}'");
                     PrintUsage(stderr);
-                    return ExitInvalidInput;
+                    arguments = CommandArguments.None;
+                    return false;
             }
         }
 
-        if (configPath is null)
-        {
-            stderr.WriteLine("error: missing required option --config");
-            PrintUsage(stderr);
-            return ExitInvalidInput;
-        }
-
-        try
-        {
-            var pipeline = new GenerationPipeline();
-            var validation = pipeline.Validate(configPath);
-            if (!validation.IsValid)
-            {
-                var unreadable = validation.FailureKind == ConfigFailureKind.UnreadableFile;
-                stderr.WriteLine(unreadable
-                    ? $"error: cannot read configuration: {configPath}"
-                    : $"error: configuration is invalid: {configPath}");
-                foreach (var error in validation.Errors)
-                {
-                    stderr.WriteLine($"  {error}");
-                }
-
-                return unreadable ? ExitRuntimeError : ExitInvalidInput;
-            }
-
-            var dataset = pipeline.Generate(validation.Config!);
-            var destination = Path.GetFullPath(
-                outputDirectory ??
-                ConfigPaths.ResolveOutputDirectory(validation.Config!.Output.Directory, configPath));
-            var export = pipeline.Export(dataset, destination, overwrite);
-            if (!export.Success)
-            {
-                stderr.WriteLine($"error: {export.Error}");
-                return ExitRuntimeError;
-            }
-
-            stdout.WriteLine(
-                $"Generated dataset '{dataset.ProductName}' ({Quantity(dataset.LotCount, "lot")}, {Quantity(dataset.WaferCount, "wafer")})");
-            stdout.WriteLine($"Manifest: {export.ManifestPath}");
-            return ExitSuccess;
-        }
-        catch (Exception ex)
-        {
-            stderr.WriteLine($"error: {ex.Message}");
-            return ExitRuntimeError;
-        }
+        arguments = new CommandArguments(configPath, outputDirectory, overwrite, ShowHelp: false);
+        return true;
     }
+
+    private static bool TryLoadConfig(
+        GenerationPipeline pipeline,
+        string configPath,
+        TextWriter stderr,
+        out ResolvedConfig? config,
+        out int exitCode)
+    {
+        var validation = pipeline.Validate(configPath);
+        if (validation.IsValid)
+        {
+            config = validation.Config;
+            exitCode = ExitSuccess;
+            return true;
+        }
+
+        var unreadable = validation.FailureKind == ConfigFailureKind.UnreadableFile;
+        stderr.WriteLine(unreadable
+            ? $"error: cannot read configuration: {configPath}"
+            : $"error: configuration is invalid: {configPath}");
+        foreach (var error in validation.Errors)
+        {
+            stderr.WriteLine($"  {error}");
+        }
+
+        config = null;
+        exitCode = unreadable ? ExitRuntimeError : ExitInvalidInput;
+        return false;
+    }
+
+    private static void PrintPreview(Dataset dataset, TextWriter writer)
+    {
+        var geometry = dataset.Config.Wafer;
+        var perWafer = dataset.DieMap.Counts;
+        var totals = dataset.DieTotals;
+
+        writer.WriteLine($"Product: {dataset.ProductName}");
+        writer.WriteLine($"Lots: {dataset.LotCount}");
+        writer.WriteLine($"Wafers: {dataset.WaferCount}");
+        writer.WriteLine();
+        writer.WriteLine("Wafer geometry (per wafer):");
+        writer.WriteLine($"  Diameter: {Number(geometry.DiameterMm)} mm");
+        writer.WriteLine($"  Edge exclusion: {Number(geometry.EdgeExclusionMm)} mm");
+        writer.WriteLine($"  Notch angle: {Number(geometry.NotchAngleDeg)}°");
+        writer.WriteLine($"  Die size: {Number(geometry.DieWidthMm)} × {Number(geometry.DieHeightMm)} mm");
+        writer.WriteLine($"  Scribe lane: {Number(geometry.ScribeMm)} mm");
+        writer.WriteLine(
+            $"  Die pitch: {Number(geometry.PitchWidthMm)} × {Number(geometry.PitchHeightMm)} mm");
+        writer.WriteLine(
+            $"  Grid offset: {Number(geometry.GridOffsetXMm)}, {Number(geometry.GridOffsetYMm)} mm");
+        writer.WriteLine($"  Rotation: {geometry.RotationDeg}°");
+        writer.WriteLine($"  Mirror: {MirrorLabel(geometry)}");
+        writer.WriteLine($"  Die index origin: {ConfigName(geometry.IndexOrigin)}");
+        writer.WriteLine($"  Partial die policy: {ConfigName(geometry.PartialDiePolicy)}");
+        writer.WriteLine();
+        writer.WriteLine("Die map:");
+        writer.WriteLine($"  Gross die: {perWafer.GrossDie} per wafer, {totals.GrossDie} total");
+        writer.WriteLine($"  Net die: {perWafer.NetDie} per wafer, {totals.NetDie} total");
+        writer.WriteLine(
+            $"  Partial die: {perWafer.PartialDieFound} per wafer, {totals.PartialDieFound} total (retained: {perWafer.PartialDieRetained})");
+    }
+
+    private static string MirrorLabel(WaferGeometry geometry) => (geometry.MirrorX, geometry.MirrorY) switch
+    {
+        (true, true) => "X and Y",
+        (true, false) => "X",
+        (false, true) => "Y",
+        _ => "none",
+    };
+
+    private static string ConfigName<TEnum>(TEnum value) where TEnum : struct, Enum =>
+        JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
+
+    private static string Number(double value) =>
+        value.ToString("0.####", CultureInfo.InvariantCulture);
 
     private static bool TryReadValue(
         string[] args, ref int index, string option, TextWriter stderr, out string? value)
@@ -141,17 +282,24 @@ public static class CliApplication
 
     private static bool IsHelp(string argument) => argument is "-h" or "--help";
 
+    private static void PrintMissingConfig(TextWriter stderr)
+    {
+        stderr.WriteLine("error: missing required option --config");
+        PrintUsage(stderr);
+    }
+
     private static void PrintUsage(TextWriter writer)
     {
         writer.WriteLine("SiliconDraft generates synthetic CP/FT/WAT datasets with known ground truth.");
         writer.WriteLine();
         writer.WriteLine("Usage:");
         writer.WriteLine("  silicondraft generate -c <config> [-o <directory>] [--overwrite]");
+        writer.WriteLine("  silicondraft preview -c <config>");
         writer.WriteLine();
         writer.WriteLine("Options:");
         writer.WriteLine("  -c, --config <path>     Versioned JSON configuration file (required)");
-        writer.WriteLine("  -o, --output <dir>      Override the configured output directory");
-        writer.WriteLine("      --overwrite         Replace existing output files");
+        writer.WriteLine("  -o, --output <dir>      Override the configured output directory (generate only)");
+        writer.WriteLine("      --overwrite         Replace existing output files (generate only)");
         writer.WriteLine("  -h, --help              Show this help");
         writer.WriteLine();
         writer.WriteLine("Relative output directories in the configuration are resolved against the configuration file.");
@@ -161,5 +309,14 @@ public static class CliApplication
         writer.WriteLine("  1  runtime error");
         writer.WriteLine("  2  invalid configuration or arguments");
         writer.WriteLine("  3  verification failure");
+    }
+
+    private sealed record CommandArguments(
+        string? ConfigPath,
+        string? OutputDirectory,
+        bool Overwrite,
+        bool ShowHelp)
+    {
+        public static CommandArguments None { get; } = new(null, null, false, false);
     }
 }

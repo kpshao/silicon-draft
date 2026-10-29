@@ -10,12 +10,14 @@ public sealed record ResolvedConfig
     internal ResolvedConfig(
         int schemaVersion,
         ProductConfig product,
+        WaferGeometry wafer,
         long seed,
         IReadOnlyList<LotConfig> lots,
         OutputConfig output)
     {
         SchemaVersion = schemaVersion;
         Product = product;
+        Wafer = wafer;
         Seed = seed;
         Lots = lots;
         Output = output;
@@ -24,6 +26,8 @@ public sealed record ResolvedConfig
     public int SchemaVersion { get; }
 
     public ProductConfig Product { get; }
+
+    public WaferGeometry Wafer { get; }
 
     public long Seed { get; }
 

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "name": "GeometryDemo"
+  },
+  "seed": 7,
+  "wafer": {
+    "diameterMm": 100,
+    "edgeExclusionMm": 0,
+    "notchAngleDeg": 270,
+    "die": {
+      "widthMm": 10,
+      "heightMm": 8,
+      "scribeMm": 0.2,
+      "pitch": {
+        "widthMm": 10.4,
+        "heightMm": 8.4
+      }
+    },
+    "grid": {
+      "offsetMm": {
+        "x": 2,
+        "y": -1
+      },
+      "rotationDeg": 90,
+      "mirrorX": false,
+      "mirrorY": false,
+      "indexOrigin": "bottomLeft"
+    },
+    "partialDiePolicy": "retain"
+  },
+  "lots": [
+    {
+      "id": "LOT-0001",
+      "waferCount": 1
+    }
+  ],
+  "output": {
+    "directory": "../out"
+  }
+}

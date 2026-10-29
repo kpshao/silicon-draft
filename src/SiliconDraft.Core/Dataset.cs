@@ -10,6 +10,9 @@ public sealed class Dataset
     {
         Config = config;
         Lots = lots;
+        DieMap = lots[0].Wafers[0].DieMap;
+        DieTotals = DieCounts.Sum(
+            lots.SelectMany(lot => lot.Wafers).Select(wafer => wafer.DieMap.Counts));
     }
 
     public ResolvedConfig Config { get; }
@@ -20,6 +23,11 @@ public sealed class Dataset
 
     public IReadOnlyList<Lot> Lots { get; }
 
+    /// <summary>The die map shared by every wafer; wafer geometry is dataset-wide.</summary>
+    public DieMap DieMap { get; }
+
+    public DieCounts DieTotals { get; }
+
     public int LotCount => Lots.Count;
 
     public int WaferCount => Lots.Sum(lot => lot.Wafers.Count);
@@ -27,4 +35,4 @@ public sealed class Dataset
 
 public sealed record Lot(string Id, IReadOnlyList<Wafer> Wafers);
 
-public sealed record Wafer(string Id);
+public sealed record Wafer(string Id, DieMap DieMap);

@@ -141,6 +141,9 @@ The center-to-center distance between adjacent die positions; die size plus scri
 **Wafer Map**:
 A yield management view of a die map colored by bin or measurement.
 
+**Wafer Map CSV**:
+The tabular export of a Wafer Map; each row is one die with its Die Index coordinates, physical center, and status.
+
 **Notch**:
 The reference feature that defines wafer orientation.
 
@@ -148,11 +151,14 @@ The reference feature that defines wafer orientation.
 The outer wafer annulus in which die are not tested.
 
 **Partial Die**:
-A die position that intersects the edge exclusion zone.
+A die position that is not fully inside the wafer minus Edge Exclusion but still intersects the wafer; retained Partial Die are untested.
 _Avoid_: Edge die
 
+**Valid Die**:
+A die whose full area lies within the wafer minus Edge Exclusion; every Valid Die is tested and counted in Gross Die.
+
 **Gross Die**:
-The number of valid die positions on a wafer.
+The number of Valid Die positions on a wafer.
 
 **Net Die**:
 The number of die that pass CP.
