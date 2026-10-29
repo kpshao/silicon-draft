@@ -11,4 +11,16 @@ public static class TestConfigs
           "output": { "directory": "out" }
         }
         """;
+
+    /// <summary>Builds a valid configuration around an explicit <c>wafer</c> section.</summary>
+    public static string WithWafer(string waferJson, string lotsJson = """[ { "id": "LOT-0001", "waferCount": 1 } ]""") => $$"""
+        {
+          "schemaVersion": 1,
+          "product": { "name": "DemoProduct" },
+          "seed": 42,
+          "wafer": {{waferJson}},
+          "lots": {{lotsJson}},
+          "output": { "directory": "out" }
+        }
+        """;
 }

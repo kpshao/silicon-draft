@@ -27,4 +27,4 @@ public sealed class Dataset
 
 public sealed record Lot(string Id, IReadOnlyList<Wafer> Wafers);
 
-public sealed record Wafer(string Id);
+public sealed record Wafer(string Id, DieMap DieMap);
