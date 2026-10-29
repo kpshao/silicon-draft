@@ -90,6 +90,11 @@ public static class CliApplication
                 stdout.WriteLine($"Wafer map: {waferMapPath}");
             }
 
+            foreach (var stdfPath in export.StdfPaths)
+            {
+                stdout.WriteLine($"STDF: {stdfPath}");
+            }
+
             return ExitSuccess;
         }
         catch (Exception ex)
@@ -244,7 +249,9 @@ public static class CliApplication
         writer.WriteLine();
         writer.WriteLine("Die map:");
         writer.WriteLine($"  Gross die: {perWafer.GrossDie} per wafer, {totals.GrossDie} total");
-        writer.WriteLine($"  Net die: {perWafer.NetDie} per wafer, {totals.NetDie} total");
+        writer.WriteLine(
+            $"  Net die: {dataset.Cp.PassedDie} of {dataset.Cp.TestedDie} tested " +
+            $"({dataset.Cp.Yield.ToString("0.00%", CultureInfo.InvariantCulture)} yield)");
         writer.WriteLine(
             $"  Partial die: {perWafer.PartialDieFound} per wafer, {totals.PartialDieFound} total (retained: {perWafer.PartialDieRetained})");
     }

@@ -29,10 +29,9 @@ public sealed class WaferMapExportTests
 
         using var manifest = JsonDocument.Parse(File.ReadAllText(result.ManifestPath!));
         var root = manifest.RootElement;
-        Assert.Equal(2, root.GetProperty("manifestSchemaVersion").GetInt32());
+        Assert.Equal(3, root.GetProperty("manifestSchemaVersion").GetInt32());
         var datasetMetadata = root.GetProperty("dataset");
         Assert.Equal(61, datasetMetadata.GetProperty("grossDie").GetInt32());
-        Assert.Equal(61, datasetMetadata.GetProperty("netDie").GetInt32());
         Assert.Equal(40, datasetMetadata.GetProperty("partialDie").GetInt32());
         Assert.Equal(40, datasetMetadata.GetProperty("partialDieRetained").GetInt32());
         Assert.Equal(
@@ -40,6 +39,9 @@ public sealed class WaferMapExportTests
             datasetMetadata.GetProperty("grossDie").GetInt32());
         Assert.Equal(
             rows.Count(row => row.Tested),
+            datasetMetadata.GetProperty("cp").GetProperty("testedDie").GetInt32());
+        Assert.Equal(
+            datasetMetadata.GetProperty("cp").GetProperty("passedDie").GetInt32(),
             datasetMetadata.GetProperty("netDie").GetInt32());
         Assert.Equal(
             rows.Count(row => row.Status == "partial"),
@@ -48,9 +50,15 @@ public sealed class WaferMapExportTests
         var lot = Assert.Single(datasetMetadata.GetProperty("lots").EnumerateArray());
         Assert.Equal("LOT-0001", lot.GetProperty("lotId").GetString());
         Assert.Equal(61, lot.GetProperty("grossDie").GetInt32());
+        Assert.Equal(
+            datasetMetadata.GetProperty("netDie").GetInt32(),
+            lot.GetProperty("netDie").GetInt32());
         var wafer = Assert.Single(lot.GetProperty("wafers").EnumerateArray());
         Assert.Equal("LOT-0001-W01", wafer.GetProperty("waferId").GetString());
         Assert.Equal(61, wafer.GetProperty("grossDie").GetInt32());
+        Assert.Equal(
+            lot.GetProperty("netDie").GetInt32(),
+            wafer.GetProperty("netDie").GetInt32());
         Assert.Equal(40, wafer.GetProperty("partialDie").GetInt32());
         Assert.Equal(40, wafer.GetProperty("partialDieRetained").GetInt32());
 
@@ -103,7 +111,13 @@ public sealed class WaferMapExportTests
         var datasetMetadata = manifest.RootElement.GetProperty("dataset");
         Assert.Equal(2, datasetMetadata.GetProperty("waferCount").GetInt32());
         Assert.Equal(122, datasetMetadata.GetProperty("grossDie").GetInt32());
-        Assert.Equal(122, datasetMetadata.GetProperty("netDie").GetInt32());
+        Assert.Equal(
+            datasetMetadata.GetProperty("cp").GetProperty("passedDie").GetInt32(),
+            datasetMetadata.GetProperty("netDie").GetInt32());
+        var wafers = datasetMetadata.GetProperty("lots")[0].GetProperty("wafers").EnumerateArray().ToArray();
+        Assert.Equal(
+            datasetMetadata.GetProperty("netDie").GetInt32(),
+            wafers.Sum(wafer => wafer.GetProperty("netDie").GetInt32()));
     }
 
     [Fact]

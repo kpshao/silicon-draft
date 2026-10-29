@@ -20,7 +20,9 @@ public sealed class GenerateCommandTests
         Assert.Equal(0, exitCode);
         Assert.Equal(string.Empty, stderr.ToString());
         Assert.True(File.Exists(Path.Combine(outputDirectory, "_truth", "manifest.json")));
+        Assert.True(File.Exists(Path.Combine(outputDirectory, "LOT-0001_CP.stdf")));
         Assert.Contains("manifest.json", stdout.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("LOT-0001_CP.stdf", stdout.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

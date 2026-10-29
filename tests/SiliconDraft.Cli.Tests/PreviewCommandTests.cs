@@ -31,7 +31,9 @@ public sealed class PreviewCommandTests
         Assert.Contains("Die index origin: center", output);
         Assert.Contains("Partial die policy: exclude", output);
         Assert.Contains("Gross die: 2517 per wafer, 2517 total", output);
-        Assert.Contains("Net die: 2517 per wafer, 2517 total", output);
+        Assert.Contains("Net die:", output);
+        Assert.Contains("of 2517 tested", output);
+        Assert.Contains("yield", output);
         Assert.Contains("Partial die: 336 per wafer, 336 total (retained: 0)", output);
         Assert.False(Directory.Exists(workspace.PathFor("out")));
     }
@@ -71,7 +73,8 @@ public sealed class PreviewCommandTests
         Assert.Contains("Die index origin: bottomLeft", output);
         Assert.Contains("Partial die policy: retain", output);
         Assert.Contains("Gross die: 61 per wafer, 61 total", output);
-        Assert.Contains("Net die: 61 per wafer, 61 total", output);
+        Assert.Contains("Net die:", output);
+        Assert.Contains("of 61 tested", output);
         Assert.Contains("Partial die: 40 per wafer, 40 total (retained: 40)", output);
     }
 
@@ -96,7 +99,8 @@ public sealed class PreviewCommandTests
         var output = stdout.ToString();
         Assert.Contains("Wafers: 2", output);
         Assert.Contains("Gross die: 61 per wafer, 122 total", output);
-        Assert.Contains("Net die: 61 per wafer, 122 total", output);
+        Assert.Contains("Net die:", output);
+        Assert.Contains("of 122 tested", output);
     }
 
     [Fact]

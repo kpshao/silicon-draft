@@ -60,7 +60,7 @@ public sealed class GenerationPipelineTests
 
         using var manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
         var root = manifest.RootElement;
-        Assert.Equal(2, root.GetProperty("manifestSchemaVersion").GetInt32());
+        Assert.Equal(3, root.GetProperty("manifestSchemaVersion").GetInt32());
         Assert.Equal(1, root.GetProperty("configSchemaVersion").GetInt32());
         Assert.Equal(42, root.GetProperty("seed").GetInt64());
 
@@ -72,21 +72,40 @@ public sealed class GenerationPipelineTests
         Assert.Equal(300, resolvedWafer.GetProperty("diameterMm").GetDouble());
         Assert.Equal(5.08, resolvedWafer.GetProperty("pitchWidthMm").GetDouble(), 6);
         Assert.Equal("exclude", resolvedWafer.GetProperty("partialDiePolicy").GetString());
+        var resolvedCp = resolved.GetProperty("cp");
+        Assert.Equal(1, resolvedCp.GetProperty("bins").GetProperty("passHardBin").GetInt32());
+        Assert.Equal(2, resolvedCp.GetProperty("bins").GetProperty("parametricFailHardBin").GetInt32());
+        Assert.Empty(resolvedCp.GetProperty("testItems").EnumerateArray());
 
         var datasetMetadata = root.GetProperty("dataset");
         Assert.Equal("DemoProduct", datasetMetadata.GetProperty("product").GetString());
         Assert.Equal(1, datasetMetadata.GetProperty("lotCount").GetInt32());
         Assert.Equal(1, datasetMetadata.GetProperty("waferCount").GetInt32());
         Assert.Equal(2517, datasetMetadata.GetProperty("grossDie").GetInt32());
-        Assert.Equal(2517, datasetMetadata.GetProperty("netDie").GetInt32());
         Assert.Equal(336, datasetMetadata.GetProperty("partialDie").GetInt32());
+
+        var cp = datasetMetadata.GetProperty("cp");
+        Assert.Equal("cp-catalog-v1", cp.GetProperty("catalogVersion").GetString());
+        Assert.Equal(2517, cp.GetProperty("testedDie").GetInt32());
+        var passedDie = cp.GetProperty("passedDie").GetInt32();
+        Assert.InRange(passedDie, 1, 2516);
+        Assert.Equal(passedDie, datasetMetadata.GetProperty("netDie").GetInt32());
+        Assert.Equal(
+            passedDie,
+            cp.GetProperty("hardBins").EnumerateArray()
+                .Single(bin => bin.GetProperty("pass").GetBoolean())
+                .GetProperty("count")
+                .GetInt32());
+
         var lot = Assert.Single(datasetMetadata.GetProperty("lots").EnumerateArray());
         Assert.Equal("LOT-0001", lot.GetProperty("lotId").GetString());
         Assert.Equal(1, lot.GetProperty("waferCount").GetInt32());
+        Assert.Equal(passedDie, lot.GetProperty("netDie").GetInt32());
+        Assert.Equal(passedDie, lot.GetProperty("cp").GetProperty("passedDie").GetInt32());
         var wafer = Assert.Single(lot.GetProperty("wafers").EnumerateArray());
         Assert.Equal("LOT-0001-W01", wafer.GetProperty("waferId").GetString());
         Assert.Equal(2517, wafer.GetProperty("grossDie").GetInt32());
-        Assert.Equal(2517, wafer.GetProperty("netDie").GetInt32());
+        Assert.Equal(passedDie, wafer.GetProperty("netDie").GetInt32());
     }
 
     [Fact]

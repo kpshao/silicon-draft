@@ -22,11 +22,6 @@ public sealed class DieMap
     /// <summary>Number of valid die positions.</summary>
     public int GrossDie => Counts.GrossDie;
 
-    /// <summary>
-    /// Number of die that pass CP. The CP step does not exist yet, so every valid die passes.
-    /// </summary>
-    public int NetDie => Counts.NetDie;
-
     /// <summary>Partial Die positions that intersect the physical wafer, whether retained or not.</summary>
     public int PartialDieFound => Counts.PartialDieFound;
 

@@ -13,6 +13,7 @@ public sealed record ResolvedConfig
         WaferGeometry wafer,
         long seed,
         IReadOnlyList<LotConfig> lots,
+        CpConfig cp,
         OutputConfig output)
     {
         SchemaVersion = schemaVersion;
@@ -20,6 +21,7 @@ public sealed record ResolvedConfig
         Wafer = wafer;
         Seed = seed;
         Lots = lots;
+        Cp = cp;
         Output = output;
     }
 
@@ -32,6 +34,8 @@ public sealed record ResolvedConfig
     public long Seed { get; }
 
     public IReadOnlyList<LotConfig> Lots { get; }
+
+    public CpConfig Cp { get; }
 
     public OutputConfig Output { get; }
 }
