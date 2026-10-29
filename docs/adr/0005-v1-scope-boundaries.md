@@ -1,0 +1,3 @@
+# v1 scope boundaries
+
+SiliconDraft v1 validates the yield-management features that generated CP/FT/WAT data can exercise: import and step merge, wafer map and bin visualization, bin pareto, yield trends, parameter distributions and SPC, cross-step correlation, spatial signature detection, and outlier detection. Explicitly deferred are multi-product datasets, retest merging, capacity and stress testing, scratch/streak defect signatures, 150 mm flat wafers, zip export, signed or notarized distribution, and Windows/Linux packaging (v1.1). The GUI ships in English but routes every user-facing string through a localization layer so Chinese can be added without touching views.
