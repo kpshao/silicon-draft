@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SiliconDraft.Cli/SiliconDraft.Cli.csproj" />
+    <Project Path="src/SiliconDraft.Core/SiliconDraft.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SiliconDraft.Cli.Tests/SiliconDraft.Cli.Tests.csproj" />
+    <Project Path="tests/SiliconDraft.Core.Tests/SiliconDraft.Core.Tests.csproj" />
+    <Project Path="tests/SiliconDraft.TestSupport/SiliconDraft.TestSupport.csproj" />
+  </Folder>
+</Solution>
