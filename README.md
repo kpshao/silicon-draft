@@ -4,7 +4,7 @@ SiliconDraft generates synthetic CP, FT, and WAT datasets with known injected pr
 
 ## Status
 
-A versioned JSON configuration flows through the Core `GenerationPipeline` facade. `silicondraft generate` writes a ground-truth manifest, one Wafer Map CSV, one STDF V4 CP file, and one WAT TXT file per lot; `silicondraft preview` prints the effective wafer geometry, Die Map, CP summary, and WAT layout without writing files.
+A versioned JSON configuration flows through the Core `GenerationPipeline` facade. `silicondraft generate` writes a ground-truth manifest, one Wafer Map CSV and one STDF V4 CP file per lot, and one WAT TXT file per lot by default; `silicondraft preview` prints the effective wafer geometry, Die Map, CP summary, and WAT layout without writing files.
 
 ## Requirements
 
@@ -112,7 +112,7 @@ The built-in minimal WAT catalog (`wat-catalog-v1`) has eight Numeric Test Items
 }
 ```
 
-Long TXT (`<stem>_WAT_long.txt`) repeats site, Test Item, value, unit, and limits on every tab-separated row: `lotId`, `waferId`, `site`, `siteXmm`, `siteYmm`, `testItem`, `testNumber`, `value`, `unit`, `lowSpec`, `highSpec`, `lowTest`, `highTest`. Wide TXT (`<stem>_WAT_wide.txt`) writes one row per site, puts each Test Item value in its own column, and records each item's number, unit, spec limits, and test limits in a leading `#` definition block. Both formats start with `# catalogVersion=<version>`.
+Long TXT (`<stem>_WAT_long.txt`) repeats site, Test Item, value, unit, and limits on every tab-separated row: `lotId`, `waferId`, `site`, `siteXmm`, `siteYmm`, `testItem`, `testNumber`, `value`, `unit`, `lowSpec`, `highSpec`, `lowTest`, `highTest`. Wide TXT (`<stem>_WAT_wide.txt`) writes one row per site per wafer, puts each Test Item value in its own column, and records each item's number, unit, spec limits, and test limits in a leading `#` definition block. Both formats start with `# catalogVersion=<version>`.
 
 The file stem is the Lot id by default (`LOT-0001_WAT_long.txt`) or the Wafer id with `perWafer` (`LOT-0001-W01_WAT_long.txt`). The manifest records the WAT catalog version, site and test item counts, and measurement counts; the exported fields always match that catalog version. The format is recorded in [ADR-0009](docs/adr/0009-wat-txt-export.md). See [`examples/wat.json`](examples/wat.json) for a wide, per-Wafer configuration.
 

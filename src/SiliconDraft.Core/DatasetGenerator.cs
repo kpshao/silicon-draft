@@ -12,7 +12,7 @@ internal static class DatasetGenerator
 
         var dieMap = dieMapResult.Map;
         var testProgram = CpCatalog.Resolve(config.Cp);
-        var watProgram = WatCatalog.Resolve(config.Wat);
+        var watProgram = WatCatalog.CreateProgram();
         var lots = config.Lots
             .Select(lot => new Lot(
                 lot.Id,

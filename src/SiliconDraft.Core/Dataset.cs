@@ -51,10 +51,14 @@ public sealed class Dataset
     public int LotCount => Lots.Count;
 
     public int WaferCount => Lots.Sum(lot => lot.Wafers.Count);
+
+    public int WatMeasurementCount => Lots.Sum(lot => lot.WatMeasurementCount);
 }
 
 public sealed record Lot(string Id, IReadOnlyList<Wafer> Wafers)
 {
+    public int WatMeasurementCount => Wafers.Sum(wafer => wafer.WatMeasurementCount);
+
     public CpSummary GetCpSummary(CpProgram program) =>
         CpSummary.Create(
             program,
@@ -69,4 +73,6 @@ public sealed record Wafer(
 {
     /// <summary>Number of valid Die that pass CP.</summary>
     public int NetDie => CpResults.Count(result => result.Passed);
+
+    public int WatMeasurementCount => WatResults.Count;
 }

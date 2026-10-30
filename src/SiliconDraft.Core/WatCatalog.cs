@@ -29,7 +29,7 @@ internal static class WatCatalog
             DistributionKind.Normal, mean: 12, sigma: 0.5),
     ];
 
-    public static WatProgram Resolve(WatConfig config) => new(Version, DefaultItems);
+    public static WatProgram CreateProgram() => new(Version, DefaultItems);
 
     private static WatTestItem Item(
         int testNumber,

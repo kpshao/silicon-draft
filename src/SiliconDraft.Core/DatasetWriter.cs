@@ -27,7 +27,8 @@ internal static class DatasetWriter
         var stdfPaths = dataset.Lots
             .Select(lot => Path.Combine(outputDirectory, StdfCpWriter.FileName(lot.Id)))
             .ToArray();
-        var watPaths = WatPaths(dataset, outputDirectory);
+        var watFiles = WatTxtWriter.Plan(dataset, outputDirectory);
+        var watPaths = watFiles.Select(file => file.Path).ToArray();
 
         if (!overwrite)
         {
@@ -50,7 +51,10 @@ internal static class DatasetWriter
             StdfCpWriter.Write(stdfPaths[index], dataset, dataset.Lots[index]);
         }
 
-        WriteWatFiles(dataset, watPaths);
+        foreach (var watFile in watFiles)
+        {
+            WatTxtWriter.Write(dataset, watFile);
+        }
 
         var manifest = new ManifestDocument(
             ManifestSchemaVersion,
@@ -64,50 +68,6 @@ internal static class DatasetWriter
         File.WriteAllText(manifestPath, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         return ExportResult.Exported(manifestPath, waferMapPaths, stdfPaths, watPaths);
-    }
-
-    private static IReadOnlyList<string> WatPaths(Dataset dataset, string outputDirectory)
-    {
-        var template = dataset.Config.Wat.Template;
-        return dataset.Config.Wat.Organization switch
-        {
-            WatFileOrganization.PerLot => dataset.Lots
-                .Select(lot => Path.Combine(outputDirectory, WatTxtWriter.FileName(lot.Id, template)))
-                .ToArray(),
-            WatFileOrganization.PerWafer => dataset.Lots
-                .SelectMany(lot => lot.Wafers)
-                .Select(wafer => Path.Combine(outputDirectory, WatTxtWriter.FileName(wafer.Id, template)))
-                .ToArray(),
-            _ => throw new ArgumentOutOfRangeException(nameof(dataset.Config.Wat.Organization)),
-        };
-    }
-
-    private static void WriteWatFiles(Dataset dataset, IReadOnlyList<string> watPaths)
-    {
-        var template = dataset.Config.Wat.Template;
-        switch (dataset.Config.Wat.Organization)
-        {
-            case WatFileOrganization.PerLot:
-                for (var index = 0; index < dataset.Lots.Count; index++)
-                {
-                    WatTxtWriter.WriteLot(watPaths[index], dataset, dataset.Lots[index], template);
-                }
-
-                break;
-            case WatFileOrganization.PerWafer:
-                var pathIndex = 0;
-                foreach (var lot in dataset.Lots)
-                {
-                    foreach (var wafer in lot.Wafers)
-                    {
-                        WatTxtWriter.WriteWafer(watPaths[pathIndex++], dataset, lot.Id, wafer, template);
-                    }
-                }
-
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(dataset.Config.Wat.Organization));
-        }
     }
 
     private sealed record ManifestDocument(
@@ -173,7 +133,7 @@ internal static class DatasetWriter
                 totals.PartialDieFound,
                 totals.PartialDieRetained,
                 CpManifest.Create(cp, program.CatalogVersion),
-                lot.Wafers.Sum(wafer => wafer.WatResults.Count),
+                lot.WatMeasurementCount,
                 wafers);
         }
     }
@@ -195,7 +155,7 @@ internal static class DatasetWriter
                 wafer.NetDie,
                 counts.PartialDieFound,
                 counts.PartialDieRetained,
-                wafer.WatResults.Count);
+                wafer.WatMeasurementCount);
         }
     }
 
@@ -234,6 +194,6 @@ internal static class DatasetWriter
                 dataset.WatProgram.CatalogVersion,
                 dataset.Config.Wat.Sites.Count,
                 dataset.WatProgram.Items.Count,
-                dataset.Lots.SelectMany(lot => lot.Wafers).Sum(wafer => wafer.WatResults.Count));
+                dataset.WatMeasurementCount);
     }
 }
