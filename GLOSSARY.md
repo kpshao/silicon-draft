@@ -34,6 +34,10 @@ _Avoid_: Part, chip
 A CP-passing die that never becomes an FT unit.
 _Avoid_: Attrition
 
+**Assembly Lot**:
+The assembly batch that turns die from one manufacturing Lot into FT units; exported as `ASSEMBLY_LOT`.
+_Avoid_: Package lot
+
 **Escape**:
 A CP-failing die that nevertheless appears as an FT unit, used to validate consistency checks.
 _Avoid_: Leakage
@@ -77,6 +81,10 @@ _Avoid_: Parameter, test
 **CP Catalog**:
 The built-in set of CP Test Items with their units, default distributions, limits, and failure Soft Bins; versioned because exported data records which definitions produced it.
 _Avoid_: Test list
+
+**FT Catalog**:
+The built-in set of FT Test Items with their units, default distributions, limits, and failure Soft Bins; versioned because exported data records which definitions produced it.
+_Avoid_: FT test list
 
 **WAT Catalog**:
 The built-in set of WAT Test Items with their units, default distributions, and spec and test limits; versioned because exported data records which definitions produced it.

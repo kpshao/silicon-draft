@@ -13,7 +13,7 @@ public sealed class CpGenerationTests
 
         Assert.Equal(dataset.DieTotals.GrossDie, results.Count);
         Assert.All(results, result => Assert.Equal(DieDisposition.Valid, result.Die.Disposition));
-        Assert.All(results, result => Assert.Equal(dataset.TestProgram.Items.Count, result.Tests.Count));
+        Assert.All(results, result => Assert.Equal(dataset.CpProgram.Items.Count, result.Tests.Count));
         Assert.Contains(results.SelectMany(result => result.Tests), test => test.Item is NumericTestItem);
         Assert.Contains(results.SelectMany(result => result.Tests), test => test.Item is FunctionalTestItem);
         Assert.All(results.SelectMany(result => result.Tests), test =>
@@ -62,7 +62,7 @@ public sealed class CpGenerationTests
         Assert.Equal(cp.PassedDie, cp.HardBins.Single(bin => bin.Pass).Count);
         Assert.Equal(cp.PassedDie, cp.SoftBins.Single(bin => bin.Pass).Count);
         Assert.Equal(3, cp.HardBins.Count);
-        Assert.Equal(dataset.TestProgram.Items.Count + 1, cp.SoftBins.Count);
+        Assert.Equal(dataset.CpProgram.Items.Count + 1, cp.SoftBins.Count);
         Assert.True(cp.PassedDie < cp.TestedDie);
     }
 
@@ -84,7 +84,7 @@ public sealed class CpGenerationTests
             }
             """));
 
-        var vT = dataset.TestProgram.Items.Single(item => item.Name == "Vt");
+        var vT = dataset.CpProgram.Items.Single(item => item.Name == "Vt");
         Assert.Equal(new Limits(0.4499, 0.4501), vT.TestLimits);
         Assert.Equal(10, dataset.Config.Cp.Bins.PassHardBin);
         Assert.Equal(11, dataset.Config.Cp.Bins.PassSoftBin);

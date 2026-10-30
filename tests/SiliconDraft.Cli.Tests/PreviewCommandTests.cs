@@ -40,6 +40,31 @@ public sealed class PreviewCommandTests
     }
 
     [Fact]
+    public void Preview_WithFtSettings_PrintsFtUnitCounts()
+    {
+        using var workspace = new TestWorkspace();
+        var configPath = workspace.WriteConfig(TestConfigs.WithFt(
+            """{ "assemblyLoss": 2 }""",
+            """
+            {
+              "diameterMm": 100,
+              "edgeExclusionMm": 0,
+              "die": { "widthMm": 10, "heightMm": 10, "scribeMm": 0 }
+            }
+            """,
+            """[ { "id": "LOT-0001", "waferCount": 1 }, { "id": "LOT-0002", "waferCount": 1 } ]"""));
+        var stdout = new StringWriter();
+
+        var exitCode = CliApplication.Run(["preview", "-c", configPath], stdout, new StringWriter());
+
+        Assert.Equal(0, exitCode);
+        var output = stdout.ToString();
+        Assert.Contains("FT: ", output);
+        Assert.Contains("assembly loss: 2", output);
+        Assert.Contains("escapes: 0", output);
+    }
+
+    [Fact]
     public void Preview_WithCustomGeometry_PrintsConfiguredValues()
     {
         using var workspace = new TestWorkspace();

@@ -5,6 +5,19 @@ namespace SiliconDraft.Core.Tests;
 public sealed class CpConfigValidationTests
 {
     [Fact]
+    public void Validate_WithPassSoftBinEqualToAnFtFailSoftBin_RejectsTheConfig()
+    {
+        using var workspace = new TestWorkspace();
+        var configPath = workspace.WriteConfig(
+            TestConfigs.WithCp("""{ "bins": { "passSoftBin": 300 } }"""));
+
+        var result = new GenerationPipeline().Validate(configPath);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Path == "cp.bins.passSoftBin");
+    }
+
+    [Fact]
     public void Validate_WithoutCpSection_UsesDefaultBinsAndCatalog()
     {
         using var workspace = new TestWorkspace();

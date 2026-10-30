@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "name": "FtDemo"
+  },
+  "seed": 11,
+  "ft": {
+    "assemblyLoss": 5,
+    "escapeRate": 0.02
+  },
+  "lots": [
+    {
+      "id": "LOT-0001",
+      "waferCount": 2
+    }
+  ],
+  "output": {
+    "directory": "../out"
+  }
+}

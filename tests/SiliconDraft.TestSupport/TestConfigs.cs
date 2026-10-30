@@ -55,4 +55,20 @@ public static class TestConfigs
           "output": { "directory": "out" }
         }
         """;
+
+    /// <summary>Builds a valid configuration around an explicit <c>ft</c> section.</summary>
+    public static string WithFt(
+        string ftJson,
+        string? waferJson = null,
+        string lotsJson = """[ { "id": "LOT-0001", "waferCount": 1 } ]""") => $$"""
+        {
+          "schemaVersion": 1,
+          "product": { "name": "DemoProduct" },
+          "seed": 42,
+          {{(waferJson is null ? string.Empty : $"\"wafer\": {waferJson},")}}
+          "ft": {{ftJson}},
+          "lots": {{lotsJson}},
+          "output": { "directory": "out" }
+        }
+        """;
 }

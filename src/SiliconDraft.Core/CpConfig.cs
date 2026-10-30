@@ -19,15 +19,6 @@ public sealed record CpConfig
     public IReadOnlyList<CpTestItemOverride> TestItems { get; }
 }
 
-public sealed record TestBins(
-    int PassHardBin,
-    int PassSoftBin,
-    int ParametricFailHardBin,
-    int FunctionalFailHardBin)
-{
-    internal static TestBins Default { get; } = new(1, 1, 2, 3);
-}
-
 public sealed record CpTestItemOverride(
     string Name,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

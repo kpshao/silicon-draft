@@ -14,6 +14,7 @@ public sealed record ResolvedConfig
         long seed,
         IReadOnlyList<LotConfig> lots,
         CpConfig cp,
+        FtConfig ft,
         WatConfig wat,
         OutputConfig output)
     {
@@ -23,6 +24,7 @@ public sealed record ResolvedConfig
         Seed = seed;
         Lots = lots;
         Cp = cp;
+        Ft = ft;
         Wat = wat;
         Output = output;
     }
@@ -38,6 +40,8 @@ public sealed record ResolvedConfig
     public IReadOnlyList<LotConfig> Lots { get; }
 
     public CpConfig Cp { get; }
+
+    public FtConfig Ft { get; }
 
     public WatConfig Wat { get; }
 

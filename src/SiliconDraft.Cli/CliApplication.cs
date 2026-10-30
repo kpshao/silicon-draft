@@ -90,9 +90,14 @@ public static class CliApplication
                 stdout.WriteLine($"Wafer map: {waferMapPath}");
             }
 
-            foreach (var stdfPath in export.StdfPaths)
+            foreach (var cpStdfPath in export.CpStdfPaths)
             {
-                stdout.WriteLine($"STDF: {stdfPath}");
+                stdout.WriteLine($"STDF CP: {cpStdfPath}");
+            }
+
+            foreach (var ftPath in export.FtPaths)
+            {
+                stdout.WriteLine($"STDF FT: {ftPath}");
             }
 
             foreach (var watPath in export.WatPaths)
@@ -259,6 +264,12 @@ public static class CliApplication
             $"({dataset.Cp.Yield.ToString("0.00%", CultureInfo.InvariantCulture)} yield)");
         writer.WriteLine(
             $"  Partial die: {perWafer.PartialDieFound} per wafer, {totals.PartialDieFound} total (retained: {perWafer.PartialDieRetained})");
+        writer.WriteLine();
+        var ft = dataset.Ft;
+        writer.WriteLine(
+            $"FT: {ft.UnitCount} units from {dataset.Cp.PassedDie} CP-passing die " +
+            $"(assembly loss: {ft.AssemblyLoss}, escapes: {ft.EscapeUnits}, " +
+            $"{ft.Yield.ToString("0.00%", CultureInfo.InvariantCulture)} yield)");
         writer.WriteLine();
         var wat = dataset.Config.Wat;
         writer.WriteLine(

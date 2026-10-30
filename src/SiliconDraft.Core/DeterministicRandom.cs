@@ -23,6 +23,29 @@ internal static class DeterministicSeed
         long datasetSeed, string lotId, string waferId, string siteId, string testItem) =>
         Hash(datasetSeed, lotId, waferId, "WAT", siteId, testItem);
 
+    public static ulong ForFtAssemblyLoss(long datasetSeed) =>
+        Hash(datasetSeed, "FT", "ASSEMBLY-LOSS");
+
+    public static ulong ForFtEscape(long datasetSeed, string lotId, string waferId, int x, int y) =>
+        Hash(
+            datasetSeed,
+            lotId,
+            waferId,
+            x.ToString(CultureInfo.InvariantCulture),
+            y.ToString(CultureInfo.InvariantCulture),
+            "FT",
+            "ESCAPE");
+
+    public static ulong ForFtUnit(long datasetSeed, string lotId, string waferId, int x, int y) =>
+        Hash(
+            datasetSeed,
+            lotId,
+            waferId,
+            x.ToString(CultureInfo.InvariantCulture),
+            y.ToString(CultureInfo.InvariantCulture),
+            "FT",
+            "UNIT");
+
     private static ulong Hash(long datasetSeed, params string[] parts)
     {
         var text = string.Join("|", parts.Prepend(datasetSeed.ToString(CultureInfo.InvariantCulture)));
@@ -51,6 +74,17 @@ internal struct SplitMix64
 
     /// <summary>Uniform value in [0, 1) with 53 random bits.</summary>
     public double NextDouble() => (NextUInt64() >> 11) * (1.0 / (1UL << 53));
+
+    /// <summary>Uniform integer in [0, <paramref name="exclusiveMax"/>).</summary>
+    public int NextInt(int exclusiveMax)
+    {
+        if (exclusiveMax <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(exclusiveMax));
+        }
+
+        return (int)(NextUInt64() % (ulong)exclusiveMax);
+    }
 
     /// <summary>Standard normal value via the Box-Muller transform.</summary>
     public double NextNormal()

@@ -69,6 +69,8 @@ internal sealed class ConfigDocument
 
     public CpDocument? Cp { get; init; }
 
+    public FtDocument? Ft { get; init; }
+
     public WatDocument? Wat { get; init; }
 
     public OutputDocument? Output { get; init; }
@@ -119,6 +121,13 @@ internal sealed class CpTestItemDocument
     public LimitsDocument? TestLimits { get; init; }
 
     public int? FailSoftBin { get; init; }
+}
+
+internal sealed class FtDocument
+{
+    public int? AssemblyLoss { get; init; }
+
+    public double? EscapeRate { get; init; }
 }
 
 internal sealed class LimitsDocument

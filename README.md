@@ -4,7 +4,7 @@ SiliconDraft generates synthetic CP, FT, and WAT datasets with known injected pr
 
 ## Status
 
-A versioned JSON configuration flows through the Core `GenerationPipeline` facade. `silicondraft generate` writes a ground-truth manifest, one Wafer Map CSV and one STDF V4 CP file per lot, and one WAT TXT file per lot by default; `silicondraft preview` prints the effective wafer geometry, Die Map, CP summary, and WAT layout without writing files.
+A versioned JSON configuration flows through the Core `GenerationPipeline` facade. `silicondraft generate` writes a ground-truth manifest, one Wafer Map CSV, one STDF V4 CP file, and one STDF V4 FT file per lot, and one WAT TXT file per lot by default; `silicondraft preview` prints the effective wafer geometry, Die Map, CP and FT summaries, and WAT layout without writing files.
 
 ## Requirements
 
@@ -23,7 +23,7 @@ dotnet test
 dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -o out
 ```
 
-This writes `out/_truth/manifest.json`, `out/LOT-0001_wafermap.csv`, `out/LOT-0001_CP.stdf`, and `out/LOT-0001_WAT_long.txt`. The manifest records the Resolved Config (including the effective wafer geometry, CP settings, and WAT sites), the seed, the Dataset identity, Gross/Partial Die counts and Net Die per wafer, lot, and Dataset, plus CP yield and Bin counts per lot and Dataset. It also records the WAT catalog version, site and test item counts, and measurement counts per Dataset, lot, and wafer. Net Die is the number of valid die that pass CP. The Wafer Map CSV lists every exported die with its Die Index coordinates, physical center, and valid/partial status. The STDF V4 CP file contains FAR, MIR, one PIR/PTR/PRR group per tested die, and MRR. The WAT TXT file contains one row per PCM Site and Test Item. The same configuration and seed always produce the same files.
+This writes `out/_truth/manifest.json`, `out/LOT-0001_wafermap.csv`, `out/LOT-0001_CP.stdf`, `out/LOT-0001_FT.stdf`, and `out/LOT-0001_WAT_long.txt`. The manifest records the Resolved Config (including the effective wafer geometry, CP settings, FT settings, and WAT sites), the seed, the Dataset identity, Gross/Partial Die counts and Net Die per wafer, lot, and Dataset, plus CP and FT yield and Bin counts per lot and Dataset. It also records the FT catalog version, the FT Unit and Escape counts per Dataset, lot, and wafer, and the Assembly Loss per Dataset and lot, plus the WAT catalog version, site and test item counts, and measurement counts per Dataset, lot, and wafer. Net Die is the number of valid die that pass CP. The Wafer Map CSV lists every exported die with its Die Index coordinates, physical center, and valid/partial status. The STDF V4 CP file contains FAR, MIR, one PIR/PTR/PRR group per tested die, and MRR. The STDF V4 FT file contains FAR, one ATR per FT Unit, MIR, one PIR/PTR/PRR group per FT Unit, and MRR. The WAT TXT file contains one row per PCM Site and Test Item. The same configuration and seed always produce the same files.
 
 Configuration parsing is strict: unknown properties, duplicate keys, comments, and trailing commas are rejected, and every error names the offending JSON path.
 
@@ -91,6 +91,24 @@ The built-in minimal CP catalog (`cp-catalog-v1`) has six Numeric Test Items (Vt
 
 The STDF design is recorded in [ADR-0008](docs/adr/0008-minimal-stdf-cp-export.md).
 
+## FT and CP-FT traceability
+
+The built-in minimal FT catalog (`ft-catalog-v1`) has six Numeric Test Items (Icc, Voh, Vol, Ioh, Iol, Tr) and two Functional Test Items (ScanFT, BistFT). Every FT Unit is tested against all of them and gets the same Bins treatment as CP: the first failing item decides the outcome.
+
+- By default every CP-passing Die becomes exactly one FT Unit. `ft.assemblyLoss` removes that many CP-passing Die from the Dataset; `ft.escapeRate` admits that fraction of CP-failing Die as Escapes. The FT Unit count is therefore CP-passing Die minus Assembly Loss plus Escapes. A Dataset with fewer CP-passing Die than `assemblyLoss` fails generation.
+- An FT Unit's stable id is `<waferId>:<x>,<y>`, the same string as its CP PART_ID, so CP and FT records join on the source Die. Each Lot's Assembly Lot is `ALOT-<LOTID>`.
+- FT reuses the effective CP Bin numbering for the pass Hard/Soft Bin and the parametric/functional failure Hard Bins; FT Test Items carry their own failure Soft Bins. Failure Soft Bins are step-specific, so the same number may denote a different failure at CP and FT. A `cp.bins.passSoftBin` that collides with an FT failure Soft Bin is rejected.
+- `assemblyLoss` defaults to 0 and must be 0 or greater; `escapeRate` defaults to 0 and must be between 0 and 1. Unknown properties and non-integer `assemblyLoss` are rejected.
+
+```json
+"ft": {
+  "assemblyLoss": 5,
+  "escapeRate": 0.02
+}
+```
+
+The STDF FT file (`<LOTID>_FT.stdf`) contains FAR, one ATR per FT Unit, MIR with `TEST_COD` `FT`, one PIR/PTR/PRR group per FT Unit, and MRR. The ATRs sit between FAR and MIR, where STDF V4 expects audit records. PRR carries the source Die X/Y and the FT Unit id as PART_ID. Each ATR's CMD_LINE carries `UNIT_ID` (matching the PRR PART_ID), `SOURCE_WAFER_ID`, `SOURCE_DIE_X`, `SOURCE_DIE_Y`, `ASSEMBLY_LOT`, and `CP_RESULT` as `KEY=VALUE` pairs, so records join after import and Escapes are identifiable. The manifest's FT Units, Assembly Loss, and Escapes reconcile with the file. See [ADR-0010](docs/adr/0010-ft-traceability-and-stdf-export.md) and [`examples/ft.json`](examples/ft.json).
+
 ## WAT catalog and TXT export
 
 The built-in minimal WAT catalog (`wat-catalog-v1`) has eight Numeric Test Items: Vtn, Vtp, IdsatN, IdsatP, Tox, Rs, Rc, and Vbd. Every Wafer is measured at every PCM Site: one value per Test Item at each site, sampled from the catalog's default distribution. Each value is seeded from the Dataset seed, Lot, Wafer, Site, and Test Item, so the same configuration and seed reproduce the files.
@@ -126,7 +144,7 @@ silicondraft preview -c <config>
 - `-c`, `--config` — versioned JSON configuration file (required).
 - `-o`, `--output` — override the configured output directory (generate only).
 - `--overwrite` — replace existing output files (generate only).
-- `preview` — print the effective wafer geometry, Gross/Net/Partial Die counts, and WAT layout without writing files.
+- `preview` — print the effective wafer geometry, Gross/Net/Partial Die counts, FT summary, and WAT layout without writing files.
 - `-h`, `--help` — show usage.
 
 Exit codes: `0` success, `1` runtime error, `2` invalid configuration or arguments, `3` verification failure (reserved).

@@ -139,6 +139,13 @@ public static class StdfReader
             highSpec);
     }
 
+    public static AtrInfo ParseAtr(StdfRecord record)
+    {
+        Require(record, 0, 20, "ATR");
+        var reader = new FieldReader(record.Data);
+        return new AtrInfo(reader.ReadU4(), reader.ReadCn());
+    }
+
     public static PrrInfo ParsePrr(StdfRecord record)
     {
         Require(record, 5, 20, "PRR");
@@ -272,6 +279,21 @@ public sealed record PtrInfo(
     public bool Failed => (TestFlags & 0x80) != 0;
 
     public bool Passed => !Failed;
+}
+
+/// <summary>
+/// An audit trail record. SiliconDraft encodes traceability fields in CMD_LINE as
+/// semicolon-separated <c>KEY=VALUE</c> pairs.
+/// </summary>
+public sealed record AtrInfo(uint ModificationTime, string CommandLine)
+{
+    public IReadOnlyDictionary<string, string> ParseFields() =>
+        CommandLine
+            .Split(';', StringSplitOptions.RemoveEmptyEntries)
+            .Select(pair => pair.Split('=', 2))
+            .ToDictionary(
+                parts => parts[0],
+                parts => parts.Length == 2 ? parts[1] : string.Empty);
 }
 
 public sealed record PrrInfo(

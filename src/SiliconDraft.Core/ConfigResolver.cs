@@ -96,6 +96,7 @@ internal static class ConfigResolver
 
         var wafer = ResolveWafer(document.Wafer, errors);
         var cp = ResolveCp(document.Cp, errors);
+        var ft = ResolveFt(document.Ft, cp.Bins, errors);
         var wat = ResolveWat(document.Wat, wafer, errors);
 
         if (errors.Count > 0)
@@ -112,10 +113,40 @@ internal static class ConfigResolver
                 .Select(lot => new LotConfig(lot.Id!.Trim(), lot.WaferCount!.Value))
                 .ToArray(),
             cp,
+            ft,
             wat!,
             new OutputConfig(outputDirectory!));
 
         return ConfigValidationResult.Valid(resolved);
+    }
+
+    private static FtConfig ResolveFt(
+        FtDocument? ft, TestBins cpBins, List<ConfigError> errors)
+    {
+        var assemblyLoss = ft?.AssemblyLoss ?? FtConfig.Default.AssemblyLoss;
+        if (assemblyLoss < 0)
+        {
+            errors.Add(new ConfigError("ft.assemblyLoss", "must be 0 or greater"));
+        }
+
+        var escapeRate = ft?.EscapeRate ?? FtConfig.Default.EscapeRate;
+        if (!double.IsFinite(escapeRate) || escapeRate is < 0 or > 1)
+        {
+            errors.Add(new ConfigError("ft.escapeRate", "must be between 0 and 1"));
+        }
+
+        // FT reuses the CP Bin numbering, so the shared pass Soft Bin must not collide
+        // with an FT Test Item's failure Soft Bin.
+        var conflict = FtCatalog.DefaultItems
+            .FirstOrDefault(item => item.FailSoftBin == cpBins.PassSoftBin);
+        if (conflict is not null)
+        {
+            errors.Add(new ConfigError(
+                "cp.bins.passSoftBin",
+                $"conflicts with the default FT fail soft bin of '{conflict.Name}' ({conflict.FailSoftBin})"));
+        }
+
+        return new FtConfig(assemblyLoss, escapeRate);
     }
 
     private static WatConfig? ResolveWat(
