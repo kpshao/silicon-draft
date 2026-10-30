@@ -1,5 +1,5 @@
 {
-  "manifestSchemaVersion": 4,
+  "manifestSchemaVersion": 5,
   "configSchemaVersion": 1,
   "seed": 42,
   "resolvedConfig": {
@@ -39,6 +39,10 @@
         "functionalFailHardBin": 3
       },
       "testItems": []
+    },
+    "ft": {
+      "assemblyLoss": 0,
+      "escapeRate": 0
     },
     "wat": {
       "sites": [
@@ -185,6 +189,91 @@
         }
       ]
     },
+    "ft": {
+      "catalogVersion": "ft-catalog-v1",
+      "unitCount": 55,
+      "cpPassedUnits": 55,
+      "escapeUnits": 0,
+      "assemblyLoss": 0,
+      "passedUnits": 54,
+      "yield": 0.981818,
+      "hardBins": [
+        {
+          "number": 1,
+          "name": "Pass",
+          "pass": true,
+          "count": 54
+        },
+        {
+          "number": 2,
+          "name": "Parametric Fail",
+          "pass": false,
+          "count": 1
+        },
+        {
+          "number": 3,
+          "name": "Functional Fail",
+          "pass": false,
+          "count": 0
+        }
+      ],
+      "softBins": [
+        {
+          "number": 1,
+          "name": "Pass",
+          "pass": true,
+          "count": 54
+        },
+        {
+          "number": 300,
+          "name": "Icc",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 301,
+          "name": "Voh",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 302,
+          "name": "Vol",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 303,
+          "name": "Ioh",
+          "pass": false,
+          "count": 1
+        },
+        {
+          "number": 304,
+          "name": "Iol",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 305,
+          "name": "Tr",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 400,
+          "name": "ScanFT",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 401,
+          "name": "BistFT",
+          "pass": false,
+          "count": 0
+        }
+      ]
+    },
     "wat": {
       "catalogVersion": "wat-catalog-v1",
       "siteCount": 9,
@@ -194,6 +283,7 @@
     "lots": [
       {
         "lotId": "LOT-0001",
+        "assemblyLot": "ALOT-LOT-0001",
         "waferCount": 1,
         "grossDie": 61,
         "netDie": 55,
@@ -281,6 +371,91 @@
             }
           ]
         },
+        "ft": {
+          "catalogVersion": "ft-catalog-v1",
+          "unitCount": 55,
+          "cpPassedUnits": 55,
+          "escapeUnits": 0,
+          "assemblyLoss": 0,
+          "passedUnits": 54,
+          "yield": 0.981818,
+          "hardBins": [
+            {
+              "number": 1,
+              "name": "Pass",
+              "pass": true,
+              "count": 54
+            },
+            {
+              "number": 2,
+              "name": "Parametric Fail",
+              "pass": false,
+              "count": 1
+            },
+            {
+              "number": 3,
+              "name": "Functional Fail",
+              "pass": false,
+              "count": 0
+            }
+          ],
+          "softBins": [
+            {
+              "number": 1,
+              "name": "Pass",
+              "pass": true,
+              "count": 54
+            },
+            {
+              "number": 300,
+              "name": "Icc",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 301,
+              "name": "Voh",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 302,
+              "name": "Vol",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 303,
+              "name": "Ioh",
+              "pass": false,
+              "count": 1
+            },
+            {
+              "number": 304,
+              "name": "Iol",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 305,
+              "name": "Tr",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 400,
+              "name": "ScanFT",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 401,
+              "name": "BistFT",
+              "pass": false,
+              "count": 0
+            }
+          ]
+        },
         "watMeasurements": 72,
         "wafers": [
           {
@@ -289,7 +464,9 @@
             "netDie": 55,
             "partialDie": 40,
             "partialDieRetained": 0,
-            "watMeasurements": 72
+            "watMeasurements": 72,
+            "ftUnits": 55,
+            "ftEscapeUnits": 0
           }
         ]
       }

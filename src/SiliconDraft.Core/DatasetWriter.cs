@@ -4,10 +4,10 @@ using System.Text.Json.Serialization;
 
 namespace SiliconDraft.Core;
 
-/// <summary>Writes a Dataset's ground-truth manifest and per-lot Wafer Map CSVs.</summary>
+/// <summary>Writes a Dataset's ground-truth manifest and its per-lot exports.</summary>
 internal static class DatasetWriter
 {
-    public const int ManifestSchemaVersion = 4;
+    public const int ManifestSchemaVersion = 5;
     public const string TruthDirectoryName = "_truth";
     public const string ManifestFileName = "manifest.json";
 
@@ -24,8 +24,11 @@ internal static class DatasetWriter
         var waferMapPaths = dataset.Lots
             .Select(lot => Path.Combine(outputDirectory, WaferMapCsvWriter.FileName(lot.Id)))
             .ToArray();
-        var stdfPaths = dataset.Lots
+        var cpStdfPaths = dataset.Lots
             .Select(lot => Path.Combine(outputDirectory, StdfCpWriter.FileName(lot.Id)))
+            .ToArray();
+        var ftPaths = dataset.Lots
+            .Select(lot => Path.Combine(outputDirectory, StdfFtWriter.FileName(lot.Id)))
             .ToArray();
         var watFiles = WatTxtWriter.Plan(dataset, outputDirectory);
         var watPaths = watFiles.Select(file => file.Path).ToArray();
@@ -34,7 +37,8 @@ internal static class DatasetWriter
         {
             var existing = new[] { manifestPath }
                 .Concat(waferMapPaths)
-                .Concat(stdfPaths)
+                .Concat(cpStdfPaths)
+                .Concat(ftPaths)
                 .Concat(watPaths)
                 .FirstOrDefault(File.Exists);
             if (existing is not null)
@@ -48,7 +52,8 @@ internal static class DatasetWriter
         for (var index = 0; index < dataset.Lots.Count; index++)
         {
             WaferMapCsvWriter.Write(waferMapPaths[index], dataset.Lots[index]);
-            StdfCpWriter.Write(stdfPaths[index], dataset, dataset.Lots[index]);
+            StdfCpWriter.Write(cpStdfPaths[index], dataset, dataset.Lots[index]);
+            StdfFtWriter.Write(ftPaths[index], dataset, dataset.Lots[index]);
         }
 
         foreach (var watFile in watFiles)
@@ -67,7 +72,7 @@ internal static class DatasetWriter
         var json = JsonSerializer.Serialize(manifest, JsonOptions).ReplaceLineEndings("\n") + "\n";
         File.WriteAllText(manifestPath, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-        return ExportResult.Exported(manifestPath, waferMapPaths, stdfPaths, watPaths);
+        return ExportResult.Exported(manifestPath, waferMapPaths, cpStdfPaths, ftPaths, watPaths);
     }
 
     private sealed record ManifestDocument(
@@ -86,13 +91,14 @@ internal static class DatasetWriter
         int PartialDie,
         int PartialDieRetained,
         CpManifest Cp,
+        FtManifest Ft,
         WatManifest Wat,
         IReadOnlyList<LotManifest> Lots)
     {
         public static DatasetManifest Create(Dataset dataset)
         {
             var lots = dataset.Lots
-                .Select(lot => LotManifest.Create(lot, dataset.TestProgram))
+                .Select(lot => LotManifest.Create(lot, dataset.CpProgram, dataset.FtProgram))
                 .ToArray();
             var totals = dataset.DieTotals;
             return new DatasetManifest(
@@ -103,7 +109,8 @@ internal static class DatasetWriter
                 dataset.Cp.PassedDie,
                 totals.PartialDieFound,
                 totals.PartialDieRetained,
-                CpManifest.Create(dataset.Cp, dataset.TestProgram.CatalogVersion),
+                CpManifest.Create(dataset.Cp, dataset.CpProgram.CatalogVersion),
+                FtManifest.Create(dataset.Ft, dataset.FtProgram.CatalogVersion),
                 WatManifest.Create(dataset),
                 lots);
         }
@@ -111,28 +118,42 @@ internal static class DatasetWriter
 
     private sealed record LotManifest(
         string LotId,
+        string AssemblyLot,
         int WaferCount,
         int GrossDie,
         int NetDie,
         int PartialDie,
         int PartialDieRetained,
         CpManifest Cp,
+        FtManifest Ft,
         int WatMeasurements,
         IReadOnlyList<WaferManifest> Wafers)
     {
-        public static LotManifest Create(Lot lot, CpProgram program)
+        public static LotManifest Create(Lot lot, TestProgram cpProgram, TestProgram ftProgram)
         {
             var totals = DieCounts.Sum(lot.Wafers.Select(wafer => wafer.DieMap.Counts));
-            var wafers = lot.Wafers.Select(WaferManifest.Create).ToArray();
-            var cp = lot.GetCpSummary(program);
+            var ftByWafer = lot.FtUnits
+                .GroupBy(unit => unit.SourceWaferId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => new WaferFtCounts(
+                        group.Count(), group.Count(unit => unit.IsEscape)));
+            var wafers = lot.Wafers
+                .Select(wafer => WaferManifest.Create(
+                    wafer, ftByWafer.GetValueOrDefault(wafer.Id)))
+                .ToArray();
+            var cp = lot.GetCpSummary(cpProgram);
+            var ft = lot.GetFtSummary(ftProgram);
             return new LotManifest(
                 lot.Id,
+                lot.AssemblyLot,
                 wafers.Length,
                 totals.GrossDie,
                 cp.PassedDie,
                 totals.PartialDieFound,
                 totals.PartialDieRetained,
-                CpManifest.Create(cp, program.CatalogVersion),
+                CpManifest.Create(cp, cpProgram.CatalogVersion),
+                FtManifest.Create(ft, ftProgram.CatalogVersion),
                 lot.WatMeasurementCount,
                 wafers);
         }
@@ -144,9 +165,11 @@ internal static class DatasetWriter
         int NetDie,
         int PartialDie,
         int PartialDieRetained,
-        int WatMeasurements)
+        int WatMeasurements,
+        int FtUnits,
+        int FtEscapeUnits)
     {
-        public static WaferManifest Create(Wafer wafer)
+        public static WaferManifest Create(Wafer wafer, WaferFtCounts ft)
         {
             var counts = wafer.DieMap.Counts;
             return new WaferManifest(
@@ -155,9 +178,13 @@ internal static class DatasetWriter
                 wafer.NetDie,
                 counts.PartialDieFound,
                 counts.PartialDieRetained,
-                wafer.WatMeasurementCount);
+                wafer.WatMeasurementCount,
+                ft.Units,
+                ft.Escapes);
         }
     }
+
+    private readonly record struct WaferFtCounts(int Units, int Escapes);
 
     private sealed record CpManifest(
         string CatalogVersion,
@@ -173,15 +200,40 @@ internal static class DatasetWriter
                 summary.TestedDie,
                 summary.PassedDie,
                 summary.Yield,
-                summary.HardBins
-                    .Select(bin => new BinManifest(bin.Number, bin.Name, bin.Pass, bin.Count))
-                    .ToArray(),
-                summary.SoftBins
-                    .Select(bin => new BinManifest(bin.Number, bin.Name, bin.Pass, bin.Count))
-                    .ToArray());
+                ToManifest(summary.HardBins),
+                ToManifest(summary.SoftBins));
+    }
+
+    private sealed record FtManifest(
+        string CatalogVersion,
+        int UnitCount,
+        int CpPassedUnits,
+        int EscapeUnits,
+        int AssemblyLoss,
+        int PassedUnits,
+        double Yield,
+        IReadOnlyList<BinManifest> HardBins,
+        IReadOnlyList<BinManifest> SoftBins)
+    {
+        public static FtManifest Create(FtSummary summary, string catalogVersion) =>
+            new(
+                catalogVersion,
+                summary.UnitCount,
+                summary.CpPassedUnits,
+                summary.EscapeUnits,
+                summary.AssemblyLoss,
+                summary.PassedUnits,
+                summary.Yield,
+                ToManifest(summary.HardBins),
+                ToManifest(summary.SoftBins));
     }
 
     private sealed record BinManifest(int Number, string Name, bool Pass, int Count);
+
+    private static IReadOnlyList<BinManifest> ToManifest(IReadOnlyList<BinCount> bins) =>
+        bins
+            .Select(bin => new BinManifest(bin.Number, bin.Name, bin.Pass, bin.Count))
+            .ToArray();
 
     private sealed record WatManifest(
         string CatalogVersion,

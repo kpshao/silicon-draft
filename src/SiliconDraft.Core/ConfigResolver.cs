@@ -96,6 +96,7 @@ internal static class ConfigResolver
 
         var wafer = ResolveWafer(document.Wafer, errors);
         var cp = ResolveCp(document.Cp, errors);
+        var ft = ResolveFt(document.Ft, cp.Bins, errors);
         var wat = ResolveWat(document.Wat, wafer, errors);
 
         if (errors.Count > 0)
@@ -112,10 +113,40 @@ internal static class ConfigResolver
                 .Select(lot => new LotConfig(lot.Id!.Trim(), lot.WaferCount!.Value))
                 .ToArray(),
             cp,
+            ft,
             wat!,
             new OutputConfig(outputDirectory!));
 
         return ConfigValidationResult.Valid(resolved);
+    }
+
+    private static FtConfig ResolveFt(
+        FtDocument? ft, TestBins cpBins, List<ConfigError> errors)
+    {
+        var assemblyLoss = ft?.AssemblyLoss ?? FtConfig.Default.AssemblyLoss;
+        if (assemblyLoss < 0)
+        {
+            errors.Add(new ConfigError("ft.assemblyLoss", "must be 0 or greater"));
+        }
+
+        var escapeRate = ft?.EscapeRate ?? FtConfig.Default.EscapeRate;
+        if (!double.IsFinite(escapeRate) || escapeRate is < 0 or > 1)
+        {
+            errors.Add(new ConfigError("ft.escapeRate", "must be between 0 and 1"));
+        }
+
+        // FT reuses the CP Bin numbering, so the shared pass Soft Bin must not collide
+        // with an FT Test Item's failure Soft Bin.
+        var conflict = FtCatalog.DefaultItems
+            .FirstOrDefault(item => item.FailSoftBin == cpBins.PassSoftBin);
+        if (conflict is not null)
+        {
+            errors.Add(new ConfigError(
+                "cp.bins.passSoftBin",
+                $"conflicts with the default FT fail soft bin of '{conflict.Name}' ({conflict.FailSoftBin})"));
+        }
+
+        return new FtConfig(assemblyLoss, escapeRate);
     }
 
     private static WatConfig? ResolveWat(
@@ -273,12 +304,12 @@ internal static class ConfigResolver
         return new CpConfig(bins, overrides);
     }
 
-    private static CpBins ResolveCpBins(CpBinsDocument? bins, List<ConfigError> errors)
+    private static TestBins ResolveCpBins(CpBinsDocument? bins, List<ConfigError> errors)
     {
-        var passHardBin = bins?.PassHardBin ?? CpBins.Default.PassHardBin;
-        var passSoftBin = bins?.PassSoftBin ?? CpBins.Default.PassSoftBin;
-        var parametricFailHardBin = bins?.ParametricFailHardBin ?? CpBins.Default.ParametricFailHardBin;
-        var functionalFailHardBin = bins?.FunctionalFailHardBin ?? CpBins.Default.FunctionalFailHardBin;
+        var passHardBin = bins?.PassHardBin ?? TestBins.Default.PassHardBin;
+        var passSoftBin = bins?.PassSoftBin ?? TestBins.Default.PassSoftBin;
+        var parametricFailHardBin = bins?.ParametricFailHardBin ?? TestBins.Default.ParametricFailHardBin;
+        var functionalFailHardBin = bins?.FunctionalFailHardBin ?? TestBins.Default.FunctionalFailHardBin;
 
         ValidateBinNumber(errors, "cp.bins.passHardBin", passHardBin);
         ValidateBinNumber(errors, "cp.bins.passSoftBin", passSoftBin);
@@ -304,7 +335,7 @@ internal static class ConfigResolver
                 "must be distinct from cp.bins.parametricFailHardBin"));
         }
 
-        return new CpBins(passHardBin, passSoftBin, parametricFailHardBin, functionalFailHardBin);
+        return new TestBins(passHardBin, passSoftBin, parametricFailHardBin, functionalFailHardBin);
     }
 
     private static List<CpTestItemOverride> ResolveCpTestItems(
@@ -405,7 +436,7 @@ internal static class ConfigResolver
     }
 
     private static void ValidateEffectiveSoftBins(
-        CpBins bins, List<CpTestItemOverride> overrides, List<ConfigError> errors)
+        TestBins bins, List<CpTestItemOverride> overrides, List<ConfigError> errors)
     {
         var overridesByName = new Dictionary<string, (CpTestItemOverride Item, int Index)>(
             StringComparer.Ordinal);

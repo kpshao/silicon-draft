@@ -9,12 +9,6 @@ internal static class CpCatalog
 {
     public const string Version = "cp-catalog-v1";
 
-    /// <summary>P/F values are sampled as 1 for pass and 0 for fail.</summary>
-    private const string PassFailUnit = "P/F";
-
-    private static readonly Limits PassFailSpec = new(0.5, 1.5);
-    private static readonly Limits PassFailTest = new(0.5, 1.5);
-
     public static IReadOnlyList<CpCatalogItem> DefaultItems { get; } =
     [
         Numeric(1001, "Vt", "V", new Limits(0.39, 0.51), new Limits(0.40, 0.50),
@@ -36,7 +30,7 @@ internal static class CpCatalog
     public static CpCatalogItem? Find(string name) =>
         DefaultItems.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.Ordinal));
 
-    public static CpProgram Resolve(CpConfig config)
+    public static TestProgram Resolve(CpConfig config)
     {
         var overrides = new Dictionary<string, CpTestItemOverride>(StringComparer.Ordinal);
         foreach (var itemOverride in config.TestItems)
@@ -47,7 +41,7 @@ internal static class CpCatalog
         var items = DefaultItems
             .Select(item => item.Create(overrides.GetValueOrDefault(item.Name)))
             .ToArray();
-        return new CpProgram(Version, items, config.Bins);
+        return new TestProgram(Version, items, config.Bins);
     }
 
     private static CpCatalogItem Numeric(
@@ -68,7 +62,12 @@ internal static class CpCatalog
         int testNumber, string name, int failSoftBin, double passRate) =>
         new FunctionalCatalogItem(
             new CpCatalogItemDefinition(
-                testNumber, name, PassFailUnit, PassFailSpec, PassFailTest, failSoftBin),
+                testNumber,
+                name,
+                TestItemFactory.PassFailUnit,
+                TestItemFactory.PassFailSpec,
+                TestItemFactory.PassFailTest,
+                failSoftBin),
             passRate);
 }
 
@@ -95,7 +94,7 @@ internal sealed record NumericCatalogItem(
     Distribution Distribution)
     : CpCatalogItem(Definition)
 {
-    public override TestItem Create(CpTestItemOverride? itemOverride) => new NumericTestItem(
+    public override TestItem Create(CpTestItemOverride? itemOverride) => TestItemFactory.Numeric(
         Definition.TestNumber,
         Definition.Name,
         Definition.Unit,
@@ -110,12 +109,11 @@ internal sealed record FunctionalCatalogItem(
     double PassRate)
     : CpCatalogItem(Definition)
 {
-    public override TestItem Create(CpTestItemOverride? itemOverride) => new FunctionalTestItem(
+    public override TestItem Create(CpTestItemOverride? itemOverride) => TestItemFactory.Functional(
         Definition.TestNumber,
         Definition.Name,
-        Definition.Unit,
-        itemOverride?.SpecLimits ?? Definition.SpecLimits,
-        itemOverride?.TestLimits ?? Definition.TestLimits,
         itemOverride?.FailSoftBin ?? Definition.FailSoftBin,
-        PassRate);
+        PassRate,
+        itemOverride?.SpecLimits,
+        itemOverride?.TestLimits);
 }

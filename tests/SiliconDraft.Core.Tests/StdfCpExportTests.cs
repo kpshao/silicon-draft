@@ -21,10 +21,10 @@ public sealed class StdfCpExportTests
         var result = new GenerationPipeline().Export(dataset, outputDirectory);
 
         Assert.True(result.Success);
-        Assert.Equal(2, result.StdfPaths.Count);
-        Assert.Equal(Path.Combine(outputDirectory, "LOT-0001_CP.stdf"), result.StdfPaths[0]);
-        Assert.Equal(Path.Combine(outputDirectory, "LOT-0002_CP.stdf"), result.StdfPaths[1]);
-        Assert.All(result.StdfPaths, path => Assert.True(File.Exists(path)));
+        Assert.Equal(2, result.CpStdfPaths.Count);
+        Assert.Equal(Path.Combine(outputDirectory, "LOT-0001_CP.stdf"), result.CpStdfPaths[0]);
+        Assert.Equal(Path.Combine(outputDirectory, "LOT-0002_CP.stdf"), result.CpStdfPaths[1]);
+        Assert.All(result.CpStdfPaths, path => Assert.True(File.Exists(path)));
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public sealed class StdfCpExportTests
 
         var result = new GenerationPipeline().Export(dataset, outputDirectory);
 
-        var records = StdfReader.Read(Assert.Single(result.StdfPaths));
+        var records = StdfReader.Read(Assert.Single(result.CpStdfPaths));
         var far = StdfReader.ParseFar(records[0]);
         Assert.Equal(new FarInfo(0, 4), far);
 
@@ -50,7 +50,7 @@ public sealed class StdfCpExportTests
         Assert.Equal((byte)1, records[mrrIndex].Type);
         Assert.Equal((byte)20, records[mrrIndex].Sub);
 
-        var itemCount = dataset.TestProgram.Items.Count;
+        var itemCount = dataset.CpProgram.Items.Count;
         var pirCount = 0;
         var prrCount = 0;
         var ptrCount = 0;
@@ -88,13 +88,13 @@ public sealed class StdfCpExportTests
         var outputDirectory = workspace.PathFor("dataset");
 
         var result = new GenerationPipeline().Export(dataset, outputDirectory);
-        var ptrs = StdfReader.Read(Assert.Single(result.StdfPaths))
+        var ptrs = StdfReader.Read(Assert.Single(result.CpStdfPaths))
             .Where(record => record.Type == 15 && record.Sub == 10)
             .Select(StdfReader.ParsePtr)
             .ToArray();
 
-        Assert.Equal(dataset.TestProgram.Items.Count * dataset.DieTotals.GrossDie, ptrs.Length);
-        Assert.All(dataset.TestProgram.Items, item =>
+        Assert.Equal(dataset.CpProgram.Items.Count * dataset.DieTotals.GrossDie, ptrs.Length);
+        Assert.All(dataset.CpProgram.Items, item =>
             Assert.Contains(ptrs, ptr => ptr.TestText == item.Name));
 
         Assert.All(ptrs, ptr =>
@@ -136,7 +136,7 @@ public sealed class StdfCpExportTests
         var outputDirectory = workspace.PathFor("dataset");
 
         var result = new GenerationPipeline().Export(dataset, outputDirectory);
-        var prrs = StdfReader.Read(Assert.Single(result.StdfPaths))
+        var prrs = StdfReader.Read(Assert.Single(result.CpStdfPaths))
             .Where(record => record.Type == 5 && record.Sub == 20)
             .Select(StdfReader.ParsePrr)
             .ToArray();
@@ -150,8 +150,8 @@ public sealed class StdfCpExportTests
 
         Assert.Equal(testedDie, prrs.Length);
         Assert.Equal(passedDie, prrs.Count(prr => prr.HardBin == 1));
-        Assert.Equal(dataset.TestProgram.Items.Count, prrs[0].NumberOfTests);
-        Assert.All(prrs, prr => Assert.Equal(dataset.TestProgram.Items.Count, prr.NumberOfTests));
+        Assert.Equal(dataset.CpProgram.Items.Count, prrs[0].NumberOfTests);
+        Assert.All(prrs, prr => Assert.Equal(dataset.CpProgram.Items.Count, prr.NumberOfTests));
 
         var hardBins = cp.GetProperty("hardBins").EnumerateArray()
             .ToDictionary(
@@ -192,7 +192,7 @@ public sealed class StdfCpExportTests
         var outputDirectory = workspace.PathFor("dataset");
 
         var result = new GenerationPipeline().Export(dataset, outputDirectory);
-        var prrs = StdfReader.Read(Assert.Single(result.StdfPaths))
+        var prrs = StdfReader.Read(Assert.Single(result.CpStdfPaths))
             .Where(record => record.Type == 5 && record.Sub == 20)
             .Select(StdfReader.ParsePrr)
             .ToArray();
@@ -230,8 +230,8 @@ public sealed class StdfCpExportTests
         Assert.True(first.Success);
         Assert.True(second.Success);
         Assert.Equal(
-            File.ReadAllBytes(Assert.Single(first.StdfPaths)),
-            File.ReadAllBytes(Assert.Single(second.StdfPaths)));
+            File.ReadAllBytes(Assert.Single(first.CpStdfPaths)),
+            File.ReadAllBytes(Assert.Single(second.CpStdfPaths)));
     }
 
     private const string SmallGeometry = """

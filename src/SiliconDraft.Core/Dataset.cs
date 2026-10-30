@@ -8,28 +8,37 @@ public sealed class Dataset
 {
     internal Dataset(
         ResolvedConfig config,
-        CpProgram testProgram,
+        TestProgram cpProgram,
+        TestProgram ftProgram,
         WatProgram watProgram,
         IReadOnlyList<Lot> lots)
     {
         Config = config;
-        TestProgram = testProgram;
+        CpProgram = cpProgram;
+        FtProgram = ftProgram;
         WatProgram = watProgram;
         Lots = lots;
         DieMap = lots[0].Wafers[0].DieMap;
         DieTotals = DieCounts.Sum(
             lots.SelectMany(lot => lot.Wafers).Select(wafer => wafer.DieMap.Counts));
         Cp = CpSummary.Create(
-            testProgram,
+            cpProgram,
             lots.SelectMany(lot => lot.Wafers)
                 .SelectMany(wafer => wafer.CpResults)
                 .ToArray());
+        Ft = FtSummary.Create(
+            ftProgram,
+            lots.SelectMany(lot => lot.FtUnits).ToArray(),
+            Cp.PassedDie);
     }
 
     public ResolvedConfig Config { get; }
 
     /// <summary>The effective CP Test Program applied to every wafer.</summary>
-    public CpProgram TestProgram { get; }
+    public TestProgram CpProgram { get; }
+
+    /// <summary>The effective FT Test Program applied to every FT Unit.</summary>
+    public TestProgram FtProgram { get; }
 
     /// <summary>The effective WAT Test Program applied to every wafer.</summary>
     public WatProgram WatProgram { get; }
@@ -48,6 +57,9 @@ public sealed class Dataset
     /// <summary>CP outcomes for the whole Dataset.</summary>
     public CpSummary Cp { get; }
 
+    /// <summary>FT outcomes and Assembly Loss for the whole Dataset.</summary>
+    public FtSummary Ft { get; }
+
     public int LotCount => Lots.Count;
 
     public int WaferCount => Lots.Sum(lot => lot.Wafers.Count);
@@ -55,14 +67,21 @@ public sealed class Dataset
     public int WatMeasurementCount => Lots.Sum(lot => lot.WatMeasurementCount);
 }
 
-public sealed record Lot(string Id, IReadOnlyList<Wafer> Wafers)
+public sealed record Lot(
+    string Id,
+    string AssemblyLot,
+    IReadOnlyList<Wafer> Wafers,
+    IReadOnlyList<FtUnit> FtUnits)
 {
     public int WatMeasurementCount => Wafers.Sum(wafer => wafer.WatMeasurementCount);
 
-    public CpSummary GetCpSummary(CpProgram program) =>
+    public CpSummary GetCpSummary(TestProgram program) =>
         CpSummary.Create(
             program,
             Wafers.SelectMany(wafer => wafer.CpResults).ToArray());
+
+    public FtSummary GetFtSummary(TestProgram program) =>
+        FtSummary.Create(program, FtUnits, Wafers.Sum(wafer => wafer.NetDie));
 }
 
 public sealed record Wafer(

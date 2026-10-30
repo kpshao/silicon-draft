@@ -60,7 +60,7 @@ public sealed class GenerationPipelineTests
 
         using var manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
         var root = manifest.RootElement;
-        Assert.Equal(4, root.GetProperty("manifestSchemaVersion").GetInt32());
+        Assert.Equal(5, root.GetProperty("manifestSchemaVersion").GetInt32());
         Assert.Equal(1, root.GetProperty("configSchemaVersion").GetInt32());
         Assert.Equal(42, root.GetProperty("seed").GetInt64());
 

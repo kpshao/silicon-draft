@@ -1,13 +1,40 @@
 namespace SiliconDraft.Core;
 
 /// <summary>
-/// The effective CP Test Program: the ordered Test Items and the Bin numbering
-/// applied to every valid Die at CP.
+/// The effective Test Program for one test step: the ordered Test Items and the Bin
+/// numbering applied to every tested Die or FT Unit.
 /// </summary>
-public sealed record CpProgram(
+public sealed record TestProgram(
     string CatalogVersion,
     IReadOnlyList<TestItem> Items,
-    CpBins Bins);
+    TestBins Bins);
+
+/// <summary>
+/// The Hard and Soft Bin numbering a Test Program applies. The first failing Test Item
+/// decides the outcome: a Numeric failure maps to the Parametric Fail Hard Bin, a
+/// Functional failure to the Functional Fail Hard Bin, and the item's failure Soft Bin
+/// identifies what failed.
+/// </summary>
+public sealed record TestBins(
+    int PassHardBin,
+    int PassSoftBin,
+    int ParametricFailHardBin,
+    int FunctionalFailHardBin)
+{
+    internal static TestBins Default { get; } = new(1, 1, 2, 3);
+
+    internal (int HardBin, int SoftBin) Classify(IReadOnlyList<TestResult> tests)
+    {
+        var failure = tests.FirstOrDefault(test => !test.Passed);
+        var hardBin = failure is null
+            ? PassHardBin
+            : failure.Item is FunctionalTestItem
+                ? FunctionalFailHardBin
+                : ParametricFailHardBin;
+        var softBin = failure?.Item.FailSoftBin ?? PassSoftBin;
+        return (hardBin, softBin);
+    }
+}
 
 /// <summary>
 /// A named measurement with a business meaning, a unit, spec and test limits,
@@ -83,4 +110,7 @@ public sealed record FunctionalTestItem : TestItem
     /// <summary>Probability that a valid Die yields a passing result.</summary>
     public double PassRate { get; }
 }
+
+/// <summary>One Test Item result for one Die or FT Unit.</summary>
+public sealed record TestResult(TestItem Item, double Value, bool Passed);
 
