@@ -24,6 +24,22 @@ public static class TestConfigs
         }
         """;
 
+    /// <summary>Builds a valid configuration around an explicit <c>wat</c> section.</summary>
+    public static string WithWat(
+        string watJson,
+        string? waferJson = null,
+        string lotsJson = """[ { "id": "LOT-0001", "waferCount": 1 } ]""") => $$"""
+        {
+          "schemaVersion": 1,
+          "product": { "name": "DemoProduct" },
+          "seed": 42,
+          {{(waferJson is null ? string.Empty : $"\"wafer\": {waferJson},")}}
+          "wat": {{watJson}},
+          "lots": {{lotsJson}},
+          "output": { "directory": "out" }
+        }
+        """;
+
     /// <summary>Builds a valid configuration around an explicit <c>cp</c> section.</summary>
     public static string WithCp(
         string cpJson,

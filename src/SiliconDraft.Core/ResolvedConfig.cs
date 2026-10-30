@@ -14,6 +14,7 @@ public sealed record ResolvedConfig
         long seed,
         IReadOnlyList<LotConfig> lots,
         CpConfig cp,
+        WatConfig wat,
         OutputConfig output)
     {
         SchemaVersion = schemaVersion;
@@ -22,6 +23,7 @@ public sealed record ResolvedConfig
         Seed = seed;
         Lots = lots;
         Cp = cp;
+        Wat = wat;
         Output = output;
     }
 
@@ -36,6 +38,8 @@ public sealed record ResolvedConfig
     public IReadOnlyList<LotConfig> Lots { get; }
 
     public CpConfig Cp { get; }
+
+    public WatConfig Wat { get; }
 
     public OutputConfig Output { get; }
 }

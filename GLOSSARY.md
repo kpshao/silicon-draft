@@ -78,6 +78,10 @@ _Avoid_: Parameter, test
 The built-in set of CP Test Items with their units, default distributions, limits, and failure Soft Bins; versioned because exported data records which definitions produced it.
 _Avoid_: Test list
 
+**WAT Catalog**:
+The built-in set of WAT Test Items with their units, default distributions, and spec and test limits; versioned because exported data records which definitions produced it.
+_Avoid_: WAT test list
+
 **Numeric Test Item**:
 A test item that yields a measured value.
 _Avoid_: Parametric test

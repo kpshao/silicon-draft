@@ -66,7 +66,7 @@ internal static class ConfigResolver
                 {
                     errors.Add(new ConfigError($"lots[{index}].id", $"duplicate lot id '{lotId}'"));
                 }
-                else if (!IsSafeFileStem(lotId))
+                else if (!IsSafeToken(lotId))
                 {
                     errors.Add(new ConfigError(
                         $"lots[{index}].id",
@@ -96,6 +96,7 @@ internal static class ConfigResolver
 
         var wafer = ResolveWafer(document.Wafer, errors);
         var cp = ResolveCp(document.Cp, errors);
+        var wat = ResolveWat(document.Wat, wafer, errors);
 
         if (errors.Count > 0)
         {
@@ -111,9 +112,155 @@ internal static class ConfigResolver
                 .Select(lot => new LotConfig(lot.Id!.Trim(), lot.WaferCount!.Value))
                 .ToArray(),
             cp,
+            wat!,
             new OutputConfig(outputDirectory!));
 
         return ConfigValidationResult.Valid(resolved);
+    }
+
+    private static WatConfig? ResolveWat(
+        WatDocument? wat, WaferGeometry? wafer, List<ConfigError> errors)
+    {
+        var template = WatTemplate.Long;
+        if (wat?.Template is { } templateText && !TryParseWatTemplate(templateText, out template))
+        {
+            errors.Add(new ConfigError("wat.template", "must be one of 'long' or 'wide'"));
+        }
+
+        var organization = WatFileOrganization.PerLot;
+        if (wat?.Organization is { } organizationText &&
+            !TryParseWatOrganization(organizationText, out organization))
+        {
+            errors.Add(new ConfigError(
+                "wat.organization", "must be one of 'perLot' or 'perWafer'"));
+        }
+
+        IReadOnlyList<PcmSite>? sites;
+        if (wat?.Sites is null)
+        {
+            if (wafer is null)
+            {
+                return null;
+            }
+
+            sites = PcmSite.CreateDefaultLayout(wafer);
+        }
+        else
+        {
+            sites = ResolvePcmSites(wat.Sites, wafer?.DiameterMm, errors);
+        }
+
+        return new WatConfig(sites, template, organization);
+    }
+
+    private static IReadOnlyList<PcmSite> ResolvePcmSites(
+        List<PcmSiteDocument?> documents, double? diameterMm, List<ConfigError> errors)
+    {
+        var sites = new List<PcmSite>(documents.Count);
+        if (documents.Count == 0)
+        {
+            errors.Add(new ConfigError("wat.sites", "must contain at least one site"));
+            return sites;
+        }
+
+        var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var index = 0; index < documents.Count; index++)
+        {
+            var path = $"wat.sites[{index}]";
+            var document = documents[index];
+            if (document is null)
+            {
+                errors.Add(new ConfigError(path, "required"));
+                continue;
+            }
+
+            var id = document.Id?.Trim();
+            if (string.IsNullOrEmpty(id))
+            {
+                errors.Add(new ConfigError($"{path}.id", "required"));
+                continue;
+            }
+
+            if (!seenIds.Add(id))
+            {
+                errors.Add(new ConfigError($"{path}.id", $"duplicate site id '{id}'"));
+                continue;
+            }
+
+            if (!IsSafeToken(id))
+            {
+                errors.Add(new ConfigError(
+                    $"{path}.id",
+                    "must start with a letter or digit and contain only letters, digits, '.', '_' or '-'"));
+                continue;
+            }
+
+            if (document.XMm is not double x)
+            {
+                errors.Add(new ConfigError($"{path}.xMm", "required"));
+                continue;
+            }
+
+            if (document.YMm is not double y)
+            {
+                errors.Add(new ConfigError($"{path}.yMm", "required"));
+                continue;
+            }
+
+            if (!double.IsFinite(x))
+            {
+                errors.Add(new ConfigError($"{path}.xMm", "must be a finite number"));
+                continue;
+            }
+
+            if (!double.IsFinite(y))
+            {
+                errors.Add(new ConfigError($"{path}.yMm", "must be a finite number"));
+                continue;
+            }
+
+            if (diameterMm is double diameter && Math.Sqrt(x * x + y * y) > diameter / 2)
+            {
+                errors.Add(new ConfigError(path, "must lie within the wafer"));
+                continue;
+            }
+
+            sites.Add(new PcmSite(id, x, y));
+        }
+
+        return sites;
+    }
+
+    private static bool TryParseWatTemplate(string value, out WatTemplate template)
+    {
+        switch (value)
+        {
+            case "long":
+                template = WatTemplate.Long;
+                return true;
+            case "wide":
+                template = WatTemplate.Wide;
+                return true;
+            default:
+                template = WatTemplate.Long;
+                return false;
+        }
+    }
+
+    private static bool TryParseWatOrganization(string value, out WatFileOrganization organization)
+    {
+        switch (value)
+        {
+            case "perLot":
+                organization = WatFileOrganization.PerLot;
+                return true;
+            case "perWafer":
+                organization = WatFileOrganization.PerWafer;
+                return true;
+            default:
+                organization = WatFileOrganization.PerLot;
+                return false;
+        }
     }
 
     private static CpConfig ResolveCp(CpDocument? cp, List<ConfigError> errors)
@@ -222,8 +369,8 @@ internal static class ConfigResolver
         return overrides;
     }
 
-    private static CpLimits? ResolveLimits(
-        CpLimitsDocument? limits, string path, List<ConfigError> errors)
+    private static Limits? ResolveLimits(
+        LimitsDocument? limits, string path, List<ConfigError> errors)
     {
         if (limits is null)
         {
@@ -254,7 +401,7 @@ internal static class ConfigResolver
             errors.Add(new ConfigError(path, "low must be less than high"));
         }
 
-        return limits.Low is double l && limits.High is double h ? new CpLimits(l, h) : null;
+        return limits.Low is double l && limits.High is double h ? new Limits(l, h) : null;
     }
 
     private static void ValidateEffectiveSoftBins(
@@ -485,10 +632,10 @@ internal static class ConfigResolver
     private static bool IsFinitePositive(double value) => double.IsFinite(value) && value > 0;
 
     /// <summary>
-    /// Lot ids become file-name stems, so they must not be able to leave the output
-    /// directory or need quoting in a comma-separated file.
+    /// Lot ids become file-name stems and site ids label output rows, so both must not be
+    /// able to leave the output directory or need quoting in a delimited file.
     /// </summary>
-    private static bool IsSafeFileStem(string value)
+    private static bool IsSafeToken(string value)
     {
         if (value.Length == 0 || !char.IsAsciiLetterOrDigit(value[0]))
         {

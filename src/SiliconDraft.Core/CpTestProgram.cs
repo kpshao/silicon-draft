@@ -19,8 +19,8 @@ public abstract record TestItem
         int testNumber,
         string name,
         string unit,
-        CpLimits specLimits,
-        CpLimits testLimits,
+        Limits specLimits,
+        Limits testLimits,
         int failSoftBin)
     {
         TestNumber = testNumber;
@@ -37,10 +37,10 @@ public abstract record TestItem
 
     public string Unit { get; }
 
-    public CpLimits SpecLimits { get; }
+    public Limits SpecLimits { get; }
 
     /// <summary>The limits used to decide pass/fail; exported as PTR limits.</summary>
-    public CpLimits TestLimits { get; }
+    public Limits TestLimits { get; }
 
     public int FailSoftBin { get; }
 }
@@ -52,16 +52,16 @@ public sealed record NumericTestItem : TestItem
         int testNumber,
         string name,
         string unit,
-        CpLimits specLimits,
-        CpLimits testLimits,
+        Limits specLimits,
+        Limits testLimits,
         int failSoftBin,
-        CpDistribution distribution)
+        Distribution distribution)
         : base(testNumber, name, unit, specLimits, testLimits, failSoftBin)
     {
         Distribution = distribution;
     }
 
-    public CpDistribution Distribution { get; }
+    public Distribution Distribution { get; }
 }
 
 /// <summary>A Test Item that yields pass/fail against a pattern or condition.</summary>
@@ -71,8 +71,8 @@ public sealed record FunctionalTestItem : TestItem
         int testNumber,
         string name,
         string unit,
-        CpLimits specLimits,
-        CpLimits testLimits,
+        Limits specLimits,
+        Limits testLimits,
         int failSoftBin,
         double passRate)
         : base(testNumber, name, unit, specLimits, testLimits, failSoftBin)
@@ -84,15 +84,3 @@ public sealed record FunctionalTestItem : TestItem
     public double PassRate { get; }
 }
 
-public enum CpDistributionKind
-{
-    Normal,
-    Lognormal,
-}
-
-/// <summary>
-/// Numeric Test Item distribution. For <see cref="CpDistributionKind.Normal"/> the
-/// parameters are in value space; for <see cref="CpDistributionKind.Lognormal"/> they
-/// are the mean and standard deviation of the underlying normal in log space.
-/// </summary>
-public sealed record CpDistribution(CpDistributionKind Kind, double Mean, double Sigma);

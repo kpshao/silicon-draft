@@ -53,8 +53,8 @@ public sealed class CpConfigValidationTests
         Assert.Equal(13, cp.Bins.FunctionalFailHardBin);
         var item = Assert.Single(cp.TestItems);
         Assert.Equal("Vt", item.Name);
-        Assert.Equal(new CpLimits(0.41, 0.49), item.SpecLimits);
-        Assert.Equal(new CpLimits(0.4, 0.5), item.TestLimits);
+        Assert.Equal(new Limits(0.41, 0.49), item.SpecLimits);
+        Assert.Equal(new Limits(0.4, 0.5), item.TestLimits);
         Assert.Equal(110, item.FailSoftBin);
     }
 

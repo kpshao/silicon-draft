@@ -27,6 +27,7 @@ public sealed class GoldenExportTests
         AssertGolden("_truth/manifest.json", result.ManifestPath!);
         AssertGolden("LOT-0001_wafermap.csv", Assert.Single(result.WaferMapPaths));
         AssertGolden("LOT-0001_CP.stdf", Assert.Single(result.StdfPaths));
+        AssertGolden("LOT-0001_WAT_long.txt", Assert.Single(result.WatPaths));
     }
 
     private static void AssertGolden(string relativePath, string actualPath)

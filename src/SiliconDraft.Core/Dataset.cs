@@ -6,10 +6,15 @@ namespace SiliconDraft.Core;
 /// </summary>
 public sealed class Dataset
 {
-    internal Dataset(ResolvedConfig config, CpProgram testProgram, IReadOnlyList<Lot> lots)
+    internal Dataset(
+        ResolvedConfig config,
+        CpProgram testProgram,
+        WatProgram watProgram,
+        IReadOnlyList<Lot> lots)
     {
         Config = config;
         TestProgram = testProgram;
+        WatProgram = watProgram;
         Lots = lots;
         DieMap = lots[0].Wafers[0].DieMap;
         DieTotals = DieCounts.Sum(
@@ -25,6 +30,9 @@ public sealed class Dataset
 
     /// <summary>The effective CP Test Program applied to every wafer.</summary>
     public CpProgram TestProgram { get; }
+
+    /// <summary>The effective WAT Test Program applied to every wafer.</summary>
+    public WatProgram WatProgram { get; }
 
     public string ProductName => Config.Product.Name;
 
@@ -53,7 +61,11 @@ public sealed record Lot(string Id, IReadOnlyList<Wafer> Wafers)
             Wafers.SelectMany(wafer => wafer.CpResults).ToArray());
 }
 
-public sealed record Wafer(string Id, DieMap DieMap, IReadOnlyList<CpDieResult> CpResults)
+public sealed record Wafer(
+    string Id,
+    DieMap DieMap,
+    IReadOnlyList<CpDieResult> CpResults,
+    IReadOnlyList<WatMeasurement> WatResults)
 {
     /// <summary>Number of valid Die that pass CP.</summary>
     public int NetDie => CpResults.Count(result => result.Passed);

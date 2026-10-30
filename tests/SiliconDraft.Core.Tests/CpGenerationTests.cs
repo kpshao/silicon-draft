@@ -85,7 +85,7 @@ public sealed class CpGenerationTests
             """));
 
         var vT = dataset.TestProgram.Items.Single(item => item.Name == "Vt");
-        Assert.Equal(new CpLimits(0.4499, 0.4501), vT.TestLimits);
+        Assert.Equal(new Limits(0.4499, 0.4501), vT.TestLimits);
         Assert.Equal(10, dataset.Config.Cp.Bins.PassHardBin);
         Assert.Equal(11, dataset.Config.Cp.Bins.PassSoftBin);
         Assert.Contains(AllResults(dataset), result =>

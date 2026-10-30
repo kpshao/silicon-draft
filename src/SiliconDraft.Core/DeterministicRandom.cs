@@ -11,18 +11,21 @@ namespace SiliconDraft.Core;
 /// </summary>
 internal static class DeterministicSeed
 {
-    public static ulong ForDie(long datasetSeed, string lotId, string waferId, int x, int y)
-    {
-        var text = string.Concat(
-            datasetSeed.ToString(CultureInfo.InvariantCulture),
-            "|",
+    public static ulong ForDie(long datasetSeed, string lotId, string waferId, int x, int y) =>
+        Hash(
+            datasetSeed,
             lotId,
-            "|",
             waferId,
-            "|",
             x.ToString(CultureInfo.InvariantCulture),
-            "|",
             y.ToString(CultureInfo.InvariantCulture));
+
+    public static ulong ForWat(
+        long datasetSeed, string lotId, string waferId, string siteId, string testItem) =>
+        Hash(datasetSeed, lotId, waferId, "WAT", siteId, testItem);
+
+    private static ulong Hash(long datasetSeed, params string[] parts)
+    {
+        var text = string.Join("|", parts.Prepend(datasetSeed.ToString(CultureInfo.InvariantCulture)));
 
         Span<byte> hash = stackalloc byte[32];
         SHA256.HashData(Encoding.UTF8.GetBytes(text), hash);

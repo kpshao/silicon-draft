@@ -1,5 +1,5 @@
 {
-  "manifestSchemaVersion": 3,
+  "manifestSchemaVersion": 4,
   "configSchemaVersion": 1,
   "seed": 42,
   "resolvedConfig": {
@@ -39,6 +39,57 @@
         "functionalFailHardBin": 3
       },
       "testItems": []
+    },
+    "wat": {
+      "sites": [
+        {
+          "id": "S1",
+          "xMm": 0,
+          "yMm": 0
+        },
+        {
+          "id": "S2",
+          "xMm": 25,
+          "yMm": 0
+        },
+        {
+          "id": "S3",
+          "xMm": 17.67767,
+          "yMm": 17.67767
+        },
+        {
+          "id": "S4",
+          "xMm": 0,
+          "yMm": 25
+        },
+        {
+          "id": "S5",
+          "xMm": -17.67767,
+          "yMm": 17.67767
+        },
+        {
+          "id": "S6",
+          "xMm": -25,
+          "yMm": 0
+        },
+        {
+          "id": "S7",
+          "xMm": -17.67767,
+          "yMm": -17.67767
+        },
+        {
+          "id": "S8",
+          "xMm": 0,
+          "yMm": -25
+        },
+        {
+          "id": "S9",
+          "xMm": 17.67767,
+          "yMm": -17.67767
+        }
+      ],
+      "template": "long",
+      "organization": "perLot"
     },
     "output": {
       "directory": "out"
@@ -134,6 +185,12 @@
         }
       ]
     },
+    "wat": {
+      "catalogVersion": "wat-catalog-v1",
+      "siteCount": 9,
+      "testItemCount": 8,
+      "measurementCount": 72
+    },
     "lots": [
       {
         "lotId": "LOT-0001",
@@ -224,13 +281,15 @@
             }
           ]
         },
+        "watMeasurements": 72,
         "wafers": [
           {
             "waferId": "LOT-0001-W01",
             "grossDie": 61,
             "netDie": 55,
             "partialDie": 40,
-            "partialDieRetained": 0
+            "partialDieRetained": 0,
+            "watMeasurements": 72
           }
         ]
       }
