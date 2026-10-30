@@ -160,7 +160,7 @@ public sealed class StdfCpExportTests
         Assert.Equal(Enumerable.Range(1, siteCount).Select(number => (byte)number), observedSites.Order());
 
         var recordKinds = records.Select(record => (record.Type, record.Sub)).ToHashSet();
-        foreach (var kind in StdfRecordKinds.FullV4Set)
+        foreach (var kind in StdfRecordKinds.CpV4Set)
         {
             Assert.Contains(kind, recordKinds);
         }

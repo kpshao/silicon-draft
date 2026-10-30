@@ -16,7 +16,7 @@ STDF FT 使用与 CP 相同的最小记录集：FAR、每个 Unit 一条 ATR、M
 
 替代方案：Assembly Loss 用比率（舍入使配置值与实际值不一致）；Assembly Loss 按 Lot 计（配置计数会随 Lot 数量缩放并破坏 Dataset 级恒等式）；基于序列的 Unit id（新增夹具或 Lot 时不稳定）；只在 PRR PART_TXT 中追溯（自由文本而非具名字段）；文件级单条 ATR（无法携带每个 Unit 的来源坐标）；单独的 sidecar 文件（无法在 YMS 导入后存活）。
 
-T6 已加入按来源 Wafer 分组的 WIR/WRR、WCR 与完整记录集，且不改变 ATR 追溯编码；见 [ADR-0011](0011-full-stdf-and-multi-site.md)。
+T6 已加入完整记录集与 CP 的 WIR/WCR/WRR；FT 不使用 WIR/WRR，来源 Wafer 追溯仍由 ATR 承载；见 [ADR-0011](0011-full-stdf-and-multi-site.md)。
 
 <details>
 <summary>English</summary>
@@ -37,6 +37,6 @@ STDF FT uses the same minimal record set as CP: FAR, one ATR per Unit, MIR (TEST
 
 Alternatives: Assembly Loss as a rate (rounding makes the configured and achieved counts differ); Assembly Loss per Lot (the configured count would scale with the Lot count and break the Dataset-level identity); sequence-based Unit ids (unstable when a fixture or Lot is added); traceability only in PRR PART_TXT (free text instead of named fields); one file-level ATR (cannot carry per-Unit source coordinates); a separate sidecar file (does not survive YMS import).
 
-T6 has since added WIR/WRR grouped by source Wafer, WCR, and the complete record set without changing the ATR traceability encoding; see [ADR-0011](0011-full-stdf-and-multi-site.md).
+T6 has since added the complete record set and WIR/WCR/WRR for CP; FT does not use WIR/WRR, and source Wafer traceability still lives in the ATRs; see [ADR-0011](0011-full-stdf-and-multi-site.md).
 
 </details>

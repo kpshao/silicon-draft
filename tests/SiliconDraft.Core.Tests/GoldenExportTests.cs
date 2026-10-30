@@ -39,10 +39,14 @@ public sealed class GoldenExportTests
         var ftRecords = StdfReader.Read(
             Path.Combine(AppContext.BaseDirectory, "Golden", "LOT-0001_FT.stdf"));
 
-        foreach (var records in new[] { cpRecords, ftRecords })
+        foreach (var (records, expectedKinds) in new[]
+                 {
+                     (cpRecords, StdfRecordKinds.CpV4Set),
+                     (ftRecords, StdfRecordKinds.FtV4Set),
+                 })
         {
             var kinds = records.Select(record => (record.Type, record.Sub)).ToHashSet();
-            foreach (var kind in StdfRecordKinds.FullV4Set)
+            foreach (var kind in expectedKinds)
             {
                 Assert.Contains(kind, kinds);
             }
@@ -51,7 +55,8 @@ public sealed class GoldenExportTests
         var cpSdr = StdfReader.ParseSdr(
             cpRecords.First(record => record.Type == 1 && record.Sub == 80));
         Assert.Equal(8, cpSdr.SiteCount); // CP defaults to eight Tester Sites
-        Assert.Contains(ftRecords, record => record.Type == 0 && record.Sub == 20);
+        Assert.DoesNotContain(ftRecords, record =>
+            record.Type == 2 && record.Sub is 10 or 20 or 30);
     }
 
     private static void AssertGolden(string relativePath, string actualPath)
