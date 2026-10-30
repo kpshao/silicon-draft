@@ -31,11 +31,8 @@ public sealed record CpBins(
 public sealed record CpTestItemOverride(
     string Name,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    CpLimits? SpecLimits,
+    Limits? SpecLimits,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    CpLimits? TestLimits,
+    Limits? TestLimits,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     int? FailSoftBin);
-
-/// <summary>Inclusive lower and upper limits for one Test Item.</summary>
-public sealed record CpLimits(double Low, double High);

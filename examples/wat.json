@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "name": "WatDemo"
+  },
+  "seed": 7,
+  "wat": {
+    "sites": [
+      { "id": "C", "xMm": 0, "yMm": 0 },
+      { "id": "N", "xMm": 0, "yMm": 75 },
+      { "id": "E", "xMm": 75, "yMm": 0 },
+      { "id": "S", "xMm": 0, "yMm": -75 },
+      { "id": "W", "xMm": -75, "yMm": 0 }
+    ],
+    "template": "wide",
+    "organization": "perWafer"
+  },
+  "lots": [
+    {
+      "id": "LOT-0001",
+      "waferCount": 2
+    }
+  ],
+  "output": {
+    "directory": "../out"
+  }
+}

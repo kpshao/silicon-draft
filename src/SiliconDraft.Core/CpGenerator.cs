@@ -40,14 +40,7 @@ internal static class CpGenerator
 
     private static double Sample(TestItem item, ref SplitMix64 random) => item switch
     {
-        NumericTestItem numeric => numeric.Distribution.Kind switch
-        {
-            CpDistributionKind.Normal =>
-                numeric.Distribution.Mean + numeric.Distribution.Sigma * random.NextNormal(),
-            CpDistributionKind.Lognormal =>
-                Math.Exp(numeric.Distribution.Mean + numeric.Distribution.Sigma * random.NextNormal()),
-            _ => throw new ArgumentOutOfRangeException(nameof(CpDistribution.Kind)),
-        },
+        NumericTestItem numeric => numeric.Distribution.Sample(ref random),
         FunctionalTestItem functional => random.NextDouble() < functional.PassRate ? 1.0 : 0.0,
         _ => throw new ArgumentOutOfRangeException(nameof(item)),
     };

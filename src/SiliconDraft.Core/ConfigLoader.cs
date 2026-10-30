@@ -69,7 +69,27 @@ internal sealed class ConfigDocument
 
     public CpDocument? Cp { get; init; }
 
+    public WatDocument? Wat { get; init; }
+
     public OutputDocument? Output { get; init; }
+}
+
+internal sealed class WatDocument
+{
+    public List<PcmSiteDocument?>? Sites { get; init; }
+
+    public string? Template { get; init; }
+
+    public string? Organization { get; init; }
+}
+
+internal sealed class PcmSiteDocument
+{
+    public string? Id { get; init; }
+
+    public double? XMm { get; init; }
+
+    public double? YMm { get; init; }
 }
 
 internal sealed class CpDocument
@@ -94,14 +114,14 @@ internal sealed class CpTestItemDocument
 {
     public string? Name { get; init; }
 
-    public CpLimitsDocument? SpecLimits { get; init; }
+    public LimitsDocument? SpecLimits { get; init; }
 
-    public CpLimitsDocument? TestLimits { get; init; }
+    public LimitsDocument? TestLimits { get; init; }
 
     public int? FailSoftBin { get; init; }
 }
 
-internal sealed class CpLimitsDocument
+internal sealed class LimitsDocument
 {
     public double? Low { get; init; }
 

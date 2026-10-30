@@ -95,6 +95,11 @@ public static class CliApplication
                 stdout.WriteLine($"STDF: {stdfPath}");
             }
 
+            foreach (var watPath in export.WatPaths)
+            {
+                stdout.WriteLine($"WAT: {watPath}");
+            }
+
             return ExitSuccess;
         }
         catch (Exception ex)
@@ -254,6 +259,12 @@ public static class CliApplication
             $"({dataset.Cp.Yield.ToString("0.00%", CultureInfo.InvariantCulture)} yield)");
         writer.WriteLine(
             $"  Partial die: {perWafer.PartialDieFound} per wafer, {totals.PartialDieFound} total (retained: {perWafer.PartialDieRetained})");
+        writer.WriteLine();
+        var wat = dataset.Config.Wat;
+        writer.WriteLine(
+            $"WAT: {wat.Sites.Count} PCM sites, {dataset.WatProgram.Items.Count} test items, " +
+            $"{wat.Sites.Count * dataset.WatProgram.Items.Count} measurements per wafer " +
+            $"({ConfigName(wat.Template)}, {ConfigName(wat.Organization)})");
     }
 
     private static string MirrorLabel(WaferGeometry geometry) => (geometry.MirrorX, geometry.MirrorY) switch

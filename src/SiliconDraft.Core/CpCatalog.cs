@@ -12,23 +12,23 @@ internal static class CpCatalog
     /// <summary>P/F values are sampled as 1 for pass and 0 for fail.</summary>
     private const string PassFailUnit = "P/F";
 
-    private static readonly CpLimits PassFailSpec = new(0.5, 1.5);
-    private static readonly CpLimits PassFailTest = new(0.5, 1.5);
+    private static readonly Limits PassFailSpec = new(0.5, 1.5);
+    private static readonly Limits PassFailTest = new(0.5, 1.5);
 
     public static IReadOnlyList<CpCatalogItem> DefaultItems { get; } =
     [
-        Numeric(1001, "Vt", "V", new CpLimits(0.39, 0.51), new CpLimits(0.40, 0.50),
-            CpDistributionKind.Normal, mean: 0.45, sigma: 0.02, failSoftBin: 100),
-        Numeric(1002, "Idsat", "mA", new CpLimits(390, 510), new CpLimits(400, 500),
-            CpDistributionKind.Normal, mean: 450, sigma: 20, failSoftBin: 101),
-        Numeric(1003, "Iddq", "uA", new CpLimits(0, 35), new CpLimits(0, 30),
-            CpDistributionKind.Lognormal, mean: 2.485, sigma: 0.20, failSoftBin: 102),
-        Numeric(1004, "RdsOn", "mOhm", new CpLimits(73, 97), new CpLimits(75, 95),
-            CpDistributionKind.Normal, mean: 85, sigma: 4, failSoftBin: 103),
-        Numeric(1005, "Leakage", "nA", new CpLimits(0, 25), new CpLimits(0, 20),
-            CpDistributionKind.Lognormal, mean: 1.609, sigma: 0.35, failSoftBin: 104),
-        Numeric(1006, "Vf", "V", new CpLimits(1.08, 1.32), new CpLimits(1.10, 1.30),
-            CpDistributionKind.Normal, mean: 1.20, sigma: 0.05, failSoftBin: 105),
+        Numeric(1001, "Vt", "V", new Limits(0.39, 0.51), new Limits(0.40, 0.50),
+            DistributionKind.Normal, mean: 0.45, sigma: 0.02, failSoftBin: 100),
+        Numeric(1002, "Idsat", "mA", new Limits(390, 510), new Limits(400, 500),
+            DistributionKind.Normal, mean: 450, sigma: 20, failSoftBin: 101),
+        Numeric(1003, "Iddq", "uA", new Limits(0, 35), new Limits(0, 30),
+            DistributionKind.Lognormal, mean: 2.485, sigma: 0.20, failSoftBin: 102),
+        Numeric(1004, "RdsOn", "mOhm", new Limits(73, 97), new Limits(75, 95),
+            DistributionKind.Normal, mean: 85, sigma: 4, failSoftBin: 103),
+        Numeric(1005, "Leakage", "nA", new Limits(0, 25), new Limits(0, 20),
+            DistributionKind.Lognormal, mean: 1.609, sigma: 0.35, failSoftBin: 104),
+        Numeric(1006, "Vf", "V", new Limits(1.08, 1.32), new Limits(1.10, 1.30),
+            DistributionKind.Normal, mean: 1.20, sigma: 0.05, failSoftBin: 105),
         Functional(2001, "Scan", failSoftBin: 200, passRate: 0.995),
         Functional(2002, "Bist", failSoftBin: 201, passRate: 0.998),
     ];
@@ -54,15 +54,15 @@ internal static class CpCatalog
         int testNumber,
         string name,
         string unit,
-        CpLimits specLimits,
-        CpLimits testLimits,
-        CpDistributionKind kind,
+        Limits specLimits,
+        Limits testLimits,
+        DistributionKind kind,
         double mean,
         double sigma,
         int failSoftBin) =>
         new NumericCatalogItem(
             new CpCatalogItemDefinition(testNumber, name, unit, specLimits, testLimits, failSoftBin),
-            new CpDistribution(kind, mean, sigma));
+            new Distribution(kind, mean, sigma));
 
     private static CpCatalogItem Functional(
         int testNumber, string name, int failSoftBin, double passRate) =>
@@ -77,8 +77,8 @@ internal sealed record CpCatalogItemDefinition(
     int TestNumber,
     string Name,
     string Unit,
-    CpLimits SpecLimits,
-    CpLimits TestLimits,
+    Limits SpecLimits,
+    Limits TestLimits,
     int FailSoftBin);
 
 internal abstract record CpCatalogItem(CpCatalogItemDefinition Definition)
@@ -92,7 +92,7 @@ internal abstract record CpCatalogItem(CpCatalogItemDefinition Definition)
 
 internal sealed record NumericCatalogItem(
     CpCatalogItemDefinition Definition,
-    CpDistribution Distribution)
+    Distribution Distribution)
     : CpCatalogItem(Definition)
 {
     public override TestItem Create(CpTestItemOverride? itemOverride) => new NumericTestItem(

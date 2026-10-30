@@ -7,7 +7,7 @@ namespace SiliconDraft.Core;
 /// <summary>Writes a Dataset's ground-truth manifest and per-lot Wafer Map CSVs.</summary>
 internal static class DatasetWriter
 {
-    public const int ManifestSchemaVersion = 3;
+    public const int ManifestSchemaVersion = 4;
     public const string TruthDirectoryName = "_truth";
     public const string ManifestFileName = "manifest.json";
 
@@ -27,12 +27,15 @@ internal static class DatasetWriter
         var stdfPaths = dataset.Lots
             .Select(lot => Path.Combine(outputDirectory, StdfCpWriter.FileName(lot.Id)))
             .ToArray();
+        var watFiles = WatTxtWriter.Plan(dataset, outputDirectory);
+        var watPaths = watFiles.Select(file => file.Path).ToArray();
 
         if (!overwrite)
         {
             var existing = new[] { manifestPath }
                 .Concat(waferMapPaths)
                 .Concat(stdfPaths)
+                .Concat(watPaths)
                 .FirstOrDefault(File.Exists);
             if (existing is not null)
             {
@@ -48,6 +51,11 @@ internal static class DatasetWriter
             StdfCpWriter.Write(stdfPaths[index], dataset, dataset.Lots[index]);
         }
 
+        foreach (var watFile in watFiles)
+        {
+            WatTxtWriter.Write(dataset, watFile);
+        }
+
         var manifest = new ManifestDocument(
             ManifestSchemaVersion,
             ConfigLoader.ConfigSchemaVersion,
@@ -59,7 +67,7 @@ internal static class DatasetWriter
         var json = JsonSerializer.Serialize(manifest, JsonOptions).ReplaceLineEndings("\n") + "\n";
         File.WriteAllText(manifestPath, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-        return ExportResult.Exported(manifestPath, waferMapPaths, stdfPaths);
+        return ExportResult.Exported(manifestPath, waferMapPaths, stdfPaths, watPaths);
     }
 
     private sealed record ManifestDocument(
@@ -78,6 +86,7 @@ internal static class DatasetWriter
         int PartialDie,
         int PartialDieRetained,
         CpManifest Cp,
+        WatManifest Wat,
         IReadOnlyList<LotManifest> Lots)
     {
         public static DatasetManifest Create(Dataset dataset)
@@ -95,6 +104,7 @@ internal static class DatasetWriter
                 totals.PartialDieFound,
                 totals.PartialDieRetained,
                 CpManifest.Create(dataset.Cp, dataset.TestProgram.CatalogVersion),
+                WatManifest.Create(dataset),
                 lots);
         }
     }
@@ -107,6 +117,7 @@ internal static class DatasetWriter
         int PartialDie,
         int PartialDieRetained,
         CpManifest Cp,
+        int WatMeasurements,
         IReadOnlyList<WaferManifest> Wafers)
     {
         public static LotManifest Create(Lot lot, CpProgram program)
@@ -122,6 +133,7 @@ internal static class DatasetWriter
                 totals.PartialDieFound,
                 totals.PartialDieRetained,
                 CpManifest.Create(cp, program.CatalogVersion),
+                lot.WatMeasurementCount,
                 wafers);
         }
     }
@@ -131,7 +143,8 @@ internal static class DatasetWriter
         int GrossDie,
         int NetDie,
         int PartialDie,
-        int PartialDieRetained)
+        int PartialDieRetained,
+        int WatMeasurements)
     {
         public static WaferManifest Create(Wafer wafer)
         {
@@ -141,7 +154,8 @@ internal static class DatasetWriter
                 counts.GrossDie,
                 wafer.NetDie,
                 counts.PartialDieFound,
-                counts.PartialDieRetained);
+                counts.PartialDieRetained,
+                wafer.WatMeasurementCount);
         }
     }
 
@@ -168,4 +182,18 @@ internal static class DatasetWriter
     }
 
     private sealed record BinManifest(int Number, string Name, bool Pass, int Count);
+
+    private sealed record WatManifest(
+        string CatalogVersion,
+        int SiteCount,
+        int TestItemCount,
+        int MeasurementCount)
+    {
+        public static WatManifest Create(Dataset dataset) =>
+            new(
+                dataset.WatProgram.CatalogVersion,
+                dataset.Config.Wat.Sites.Count,
+                dataset.WatProgram.Items.Count,
+                dataset.WatMeasurementCount);
+    }
 }
