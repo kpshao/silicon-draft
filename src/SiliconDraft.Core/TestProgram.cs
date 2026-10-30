@@ -1,13 +1,13 @@
 namespace SiliconDraft.Core;
 
 /// <summary>
-/// The effective CP Test Program: the ordered Test Items and the Bin numbering
-/// applied to every valid Die at CP.
+/// The effective Test Program for one test step: the ordered Test Items and the Bin
+/// numbering applied to every tested Die or FT Unit.
 /// </summary>
-public sealed record CpProgram(
+public sealed record TestProgram(
     string CatalogVersion,
     IReadOnlyList<TestItem> Items,
-    CpBins Bins);
+    TestBins Bins);
 
 /// <summary>
 /// A named measurement with a business meaning, a unit, spec and test limits,

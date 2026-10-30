@@ -8,7 +8,7 @@ public sealed class Dataset
 {
     internal Dataset(
         ResolvedConfig config,
-        CpProgram testProgram,
+        TestProgram testProgram,
         WatProgram watProgram,
         IReadOnlyList<Lot> lots)
     {
@@ -29,7 +29,7 @@ public sealed class Dataset
     public ResolvedConfig Config { get; }
 
     /// <summary>The effective CP Test Program applied to every wafer.</summary>
-    public CpProgram TestProgram { get; }
+    public TestProgram TestProgram { get; }
 
     /// <summary>The effective WAT Test Program applied to every wafer.</summary>
     public WatProgram WatProgram { get; }
@@ -59,7 +59,7 @@ public sealed record Lot(string Id, IReadOnlyList<Wafer> Wafers)
 {
     public int WatMeasurementCount => Wafers.Sum(wafer => wafer.WatMeasurementCount);
 
-    public CpSummary GetCpSummary(CpProgram program) =>
+    public CpSummary GetCpSummary(TestProgram program) =>
         CpSummary.Create(
             program,
             Wafers.SelectMany(wafer => wafer.CpResults).ToArray());

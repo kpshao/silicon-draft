@@ -8,7 +8,7 @@ namespace SiliconDraft.Core;
 internal static class CpGenerator
 {
     public static IReadOnlyList<CpDieResult> Generate(
-        CpProgram program,
+        TestProgram program,
         long seed,
         string lotId,
         string waferId,

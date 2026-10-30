@@ -12,7 +12,7 @@ public sealed record CpDieResult(
     /// <summary>The first failing Test Item; its type and Soft Bin determine the Bins.</summary>
     public TestResult? FirstFailure => Tests.FirstOrDefault(test => !test.Passed);
 
-    internal static CpDieResult Create(Die die, IReadOnlyList<TestResult> tests, CpBins bins)
+    internal static CpDieResult Create(Die die, IReadOnlyList<TestResult> tests, TestBins bins)
     {
         var failure = tests.FirstOrDefault(test => !test.Passed);
         var hardBin = failure is null
@@ -29,18 +29,18 @@ public sealed record CpDieResult(
 public sealed record TestResult(TestItem Item, double Value, bool Passed);
 
 /// <summary>One Bin's definition and count.</summary>
-public sealed record CpBinCount(int Number, string Name, bool Pass, int Count);
+public sealed record BinCount(int Number, string Name, bool Pass, int Count);
 
 /// <summary>Aggregated CP outcome for a wafer, lot, or Dataset.</summary>
 public sealed record CpSummary(
     int TestedDie,
     int PassedDie,
-    IReadOnlyList<CpBinCount> HardBins,
-    IReadOnlyList<CpBinCount> SoftBins)
+    IReadOnlyList<BinCount> HardBins,
+    IReadOnlyList<BinCount> SoftBins)
 {
     public double Yield => TestedDie == 0 ? 0 : Math.Round((double)PassedDie / TestedDie, 6);
 
-    internal static CpSummary Create(CpProgram program, IReadOnlyList<CpDieResult> results)
+    internal static CpSummary Create(TestProgram program, IReadOnlyList<CpDieResult> results)
     {
         var hardDefinitions = new (int Number, string Name, bool Pass)[]
         {
@@ -68,12 +68,12 @@ public sealed record CpSummary(
             results.Count,
             results.Count(result => result.Passed),
             hardDefinitions
-                .Select(definition => new CpBinCount(
+                .Select(definition => new BinCount(
                     definition.Number, definition.Name, definition.Pass, hardCounts[definition.Number]))
                 .OrderBy(bin => bin.Number)
                 .ToArray(),
             softDefinitions
-                .Select(definition => new CpBinCount(
+                .Select(definition => new BinCount(
                     definition.Number, definition.Name, definition.Pass, softCounts[definition.Number]))
                 .OrderBy(bin => bin.Number)
                 .ToArray());

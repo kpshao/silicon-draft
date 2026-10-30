@@ -120,7 +120,7 @@ internal static class DatasetWriter
         int WatMeasurements,
         IReadOnlyList<WaferManifest> Wafers)
     {
-        public static LotManifest Create(Lot lot, CpProgram program)
+        public static LotManifest Create(Lot lot, TestProgram program)
         {
             var totals = DieCounts.Sum(lot.Wafers.Select(wafer => wafer.DieMap.Counts));
             var wafers = lot.Wafers.Select(WaferManifest.Create).ToArray();

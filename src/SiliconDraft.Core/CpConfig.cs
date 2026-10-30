@@ -8,24 +8,24 @@ namespace SiliconDraft.Core;
 /// </summary>
 public sealed record CpConfig
 {
-    internal CpConfig(CpBins bins, IReadOnlyList<CpTestItemOverride> testItems)
+    internal CpConfig(TestBins bins, IReadOnlyList<CpTestItemOverride> testItems)
     {
         Bins = bins;
         TestItems = testItems;
     }
 
-    public CpBins Bins { get; }
+    public TestBins Bins { get; }
 
     public IReadOnlyList<CpTestItemOverride> TestItems { get; }
 }
 
-public sealed record CpBins(
+public sealed record TestBins(
     int PassHardBin,
     int PassSoftBin,
     int ParametricFailHardBin,
     int FunctionalFailHardBin)
 {
-    internal static CpBins Default { get; } = new(1, 1, 2, 3);
+    internal static TestBins Default { get; } = new(1, 1, 2, 3);
 }
 
 public sealed record CpTestItemOverride(

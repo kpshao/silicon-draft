@@ -36,7 +36,7 @@ internal static class CpCatalog
     public static CpCatalogItem? Find(string name) =>
         DefaultItems.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.Ordinal));
 
-    public static CpProgram Resolve(CpConfig config)
+    public static TestProgram Resolve(CpConfig config)
     {
         var overrides = new Dictionary<string, CpTestItemOverride>(StringComparer.Ordinal);
         foreach (var itemOverride in config.TestItems)
@@ -47,7 +47,7 @@ internal static class CpCatalog
         var items = DefaultItems
             .Select(item => item.Create(overrides.GetValueOrDefault(item.Name)))
             .ToArray();
-        return new CpProgram(Version, items, config.Bins);
+        return new TestProgram(Version, items, config.Bins);
     }
 
     private static CpCatalogItem Numeric(

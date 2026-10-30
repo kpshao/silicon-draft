@@ -273,12 +273,12 @@ internal static class ConfigResolver
         return new CpConfig(bins, overrides);
     }
 
-    private static CpBins ResolveCpBins(CpBinsDocument? bins, List<ConfigError> errors)
+    private static TestBins ResolveCpBins(CpBinsDocument? bins, List<ConfigError> errors)
     {
-        var passHardBin = bins?.PassHardBin ?? CpBins.Default.PassHardBin;
-        var passSoftBin = bins?.PassSoftBin ?? CpBins.Default.PassSoftBin;
-        var parametricFailHardBin = bins?.ParametricFailHardBin ?? CpBins.Default.ParametricFailHardBin;
-        var functionalFailHardBin = bins?.FunctionalFailHardBin ?? CpBins.Default.FunctionalFailHardBin;
+        var passHardBin = bins?.PassHardBin ?? TestBins.Default.PassHardBin;
+        var passSoftBin = bins?.PassSoftBin ?? TestBins.Default.PassSoftBin;
+        var parametricFailHardBin = bins?.ParametricFailHardBin ?? TestBins.Default.ParametricFailHardBin;
+        var functionalFailHardBin = bins?.FunctionalFailHardBin ?? TestBins.Default.FunctionalFailHardBin;
 
         ValidateBinNumber(errors, "cp.bins.passHardBin", passHardBin);
         ValidateBinNumber(errors, "cp.bins.passSoftBin", passSoftBin);
@@ -304,7 +304,7 @@ internal static class ConfigResolver
                 "must be distinct from cp.bins.parametricFailHardBin"));
         }
 
-        return new CpBins(passHardBin, passSoftBin, parametricFailHardBin, functionalFailHardBin);
+        return new TestBins(passHardBin, passSoftBin, parametricFailHardBin, functionalFailHardBin);
     }
 
     private static List<CpTestItemOverride> ResolveCpTestItems(
@@ -405,7 +405,7 @@ internal static class ConfigResolver
     }
 
     private static void ValidateEffectiveSoftBins(
-        CpBins bins, List<CpTestItemOverride> overrides, List<ConfigError> errors)
+        TestBins bins, List<CpTestItemOverride> overrides, List<ConfigError> errors)
     {
         var overridesByName = new Dictionary<string, (CpTestItemOverride Item, int Index)>(
             StringComparer.Ordinal);
