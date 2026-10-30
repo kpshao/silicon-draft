@@ -67,6 +67,79 @@ public sealed class CpGenerationTests
     }
 
     [Fact]
+    public void Generate_DefaultsToEightSitesAndAssignsEverySite()
+    {
+        var dataset = Generate(TestConfigs.Valid);
+        var results = AllResults(dataset);
+
+        Assert.Equal(8, dataset.CpProgram.SiteCount);
+        Assert.All(results, result => Assert.InRange(result.Site, 1, 8));
+        Assert.Equal(
+            Enumerable.Range(1, 8),
+            results.Select(result => result.Site).Distinct().OrderBy(site => site));
+    }
+
+    [Fact]
+    public void Generate_WithConfiguredSiteCount_UsesOnlyThoseSites()
+    {
+        var dataset = Generate(TestConfigs.WithCp("""{ "siteCount": 2 }"""));
+        var results = AllResults(dataset);
+
+        Assert.Equal(2, dataset.CpProgram.SiteCount);
+        Assert.All(results, result => Assert.InRange(result.Site, 1, 2));
+        Assert.Equal(
+            Enumerable.Range(1, 2),
+            results.Select(result => result.Site).Distinct().OrderBy(site => site));
+    }
+
+    [Fact]
+    public void Generate_WithNonDefaultSiteCount_ExpandsTheDefaultSiteOffsets()
+    {
+        var dataset = Generate(TestConfigs.WithCp("""{ "siteCount": 3 }"""));
+
+        var vT = Assert.IsType<NumericTestItem>(
+            dataset.CpProgram.Items.Single(item => item.Name == "Vt"));
+        Assert.Equal(3, vT.SiteOffsets.Count);
+        Assert.Equal(new[] { 0, 0.0020, -0.0015 }, vT.SiteOffsets);
+    }
+
+    [Fact]
+    public void Generate_WithSiteOffsets_AppliesTheOffsetForTheAssignedSite()
+    {
+        var dataset = Generate(TestConfigs.WithCp(
+            """
+            {
+              "siteCount": 2,
+              "testItems": [ { "name": "Vt", "siteOffsets": [0, 1000] } ]
+            }
+            """));
+
+        Assert.All(AllResults(dataset), result =>
+        {
+            var value = result.Tests.Single(test => test.Item.Name == "Vt").Value;
+            if (result.Site == 2)
+            {
+                Assert.True(value > 999, $"expected the site 2 offset, got {value}");
+            }
+            else
+            {
+                Assert.True(value < 1, $"expected no site 1 offset, got {value}");
+            }
+        });
+    }
+
+    [Fact]
+    public void Generate_SameConfigAndSeed_AssignsTheSameSites()
+    {
+        var first = Generate(TestConfigs.Valid);
+        var second = Generate(TestConfigs.Valid);
+
+        Assert.Equal(
+            AllResults(first).Select(result => result.Site),
+            AllResults(second).Select(result => result.Site));
+    }
+
+    [Fact]
     public void Generate_WithOverriddenLimitsAndBins_UsesEffectiveDefinitions()
     {
         var dataset = Generate(TestConfigs.WithCp(

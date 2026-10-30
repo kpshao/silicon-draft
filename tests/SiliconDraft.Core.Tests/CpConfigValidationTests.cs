@@ -18,7 +18,7 @@ public sealed class CpConfigValidationTests
     }
 
     [Fact]
-    public void Validate_WithoutCpSection_UsesDefaultBinsAndCatalog()
+    public void Validate_WithoutCpSection_UsesDefaultBinsSitesAndCatalog()
     {
         using var workspace = new TestWorkspace();
         var result = new GenerationPipeline().Validate(workspace.WriteConfig(TestConfigs.Valid));
@@ -29,7 +29,86 @@ public sealed class CpConfigValidationTests
         Assert.Equal(1, cp.Bins.PassSoftBin);
         Assert.Equal(2, cp.Bins.ParametricFailHardBin);
         Assert.Equal(3, cp.Bins.FunctionalFailHardBin);
+        Assert.Equal(8, cp.SiteCount);
         Assert.Empty(cp.TestItems);
+    }
+
+    [Fact]
+    public void Validate_WithSiteCount_RecordsTheEffectiveValue()
+    {
+        using var workspace = new TestWorkspace();
+        var configPath = workspace.WriteConfig(
+            TestConfigs.WithCp("""{ "siteCount": 4 }"""));
+
+        var result = new GenerationPipeline().Validate(configPath);
+
+        Assert.True(result.IsValid);
+        Assert.Equal(4, result.Config!.Cp.SiteCount);
+    }
+
+    [Theory]
+    [InlineData("""{ "siteCount": 0 }""")]
+    [InlineData("""{ "siteCount": 255 }""")]
+    [InlineData("""{ "siteCount": 300 }""")]
+    public void Validate_WithSiteCountOutOfRange_IsRejected(string cpJson)
+    {
+        using var workspace = new TestWorkspace();
+        var configPath = workspace.WriteConfig(TestConfigs.WithCp(cpJson));
+
+        var result = new GenerationPipeline().Validate(configPath);
+
+        Assert.False(result.IsValid);
+        var error = Assert.Single(result.Errors, error => error.Path == "cp.siteCount");
+        Assert.Contains("between 1 and 254", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Validate_WithSiteOffsets_RecordsTheEffectiveValues()
+    {
+        using var workspace = new TestWorkspace();
+        var configPath = workspace.WriteConfig(TestConfigs.WithCp(
+            """
+            {
+              "siteCount": 2,
+              "testItems": [
+                { "name": "Vt", "siteOffsets": [-0.001, 0.002] }
+              ]
+            }
+            """));
+
+        var result = new GenerationPipeline().Validate(configPath);
+
+        Assert.True(result.IsValid);
+        var item = Assert.Single(result.Config!.Cp.TestItems);
+        Assert.Equal(new[] { -0.001, 0.002 }, item.SiteOffsets);
+    }
+
+    [Theory]
+    [InlineData(
+        """{ "siteCount": 4, "testItems": [ { "name": "Vt", "siteOffsets": [0, 1, 2] } ] }""",
+        "cp.testItems[0].siteOffsets",
+        "exactly 4")]
+    [InlineData(
+        """{ "siteCount": 4, "testItems": [ { "name": "Vt", "siteOffsets": [0, null, 1, 2] } ] }""",
+        "cp.testItems[0].siteOffsets[1]",
+        "finite")]
+    [InlineData(
+        """
+        { "testItems": [ { "name": "Scan", "siteOffsets": [0, 0, 0, 0, 0, 0, 0, 0] } ] }
+        """,
+        "cp.testItems[0].siteOffsets",
+        "numeric")]
+    public void Validate_WithInvalidSiteOffsets_IsRejected(
+        string cpJson, string expectedPath, string expectedMessagePart)
+    {
+        using var workspace = new TestWorkspace();
+        var configPath = workspace.WriteConfig(TestConfigs.WithCp(cpJson));
+
+        var result = new GenerationPipeline().Validate(configPath);
+
+        Assert.False(result.IsValid);
+        var error = Assert.Single(result.Errors, error => error.Path == expectedPath);
+        Assert.Contains(expectedMessagePart, error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

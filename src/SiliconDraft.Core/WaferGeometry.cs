@@ -77,6 +77,24 @@ public sealed record WaferGeometry
     /// <summary>Radius of the region in which a die must fit completely to be valid.</summary>
     [JsonIgnore]
     public double UsableRadiusMm => DiameterMm / 2 - EdgeExclusionMm;
+
+    /// <summary>
+    /// Maps a direction in Die Index space to physical wafer space using the configured
+    /// mirroring, then rotation. WCR's POS_X/POS_Y use this to describe map orientation.
+    /// </summary>
+    internal (double X, double Y) PhysicalDirection(double indexX, double indexY)
+    {
+        var x = MirrorX ? -indexX : indexX;
+        var y = MirrorY ? -indexY : indexY;
+        return RotationDeg switch
+        {
+            0 => (x, y),
+            90 => (-y, x),
+            180 => (-x, -y),
+            270 => (y, -x),
+            _ => throw new ArgumentOutOfRangeException(nameof(RotationDeg)),
+        };
+    }
 }
 
 public enum DieIndexOrigin

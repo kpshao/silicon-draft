@@ -12,6 +12,8 @@ Functional Test Item 以 PTR 导出，结果为 1/0，单位为 P/F，limits 为
 
 替代方案：Functional item 使用 FTR（记录中没有单位或 limits，不满足验收标准）；导出不带 limits 的 functional item；或在 T3 写入完整的 STDF 记录集（与 T6 重复，并推迟第一个可用的 CP 闭环）。
 
+T6 已落地 FTR、PCR、HBR、SBR、WIR/WRR/WCR 与 multi-site，并改为 Functional item 使用 FTR；见 [ADR-0011](0011-full-stdf-and-multi-site.md)。
+
 <details>
 <summary>English</summary>
 
@@ -26,5 +28,7 @@ Timestamps come from a fixed simulation epoch rather than the system clock, so t
 Byte-identical output is guaranteed for a given runtime and platform. The sampling distributions use transcendental functions whose last bit may differ across platforms, so the golden STDF file is a same-platform snapshot rather than a cross-platform byte contract.
 
 Alternatives: use FTR for functional items (no units or limits in the record, failing the acceptance criteria), export functional items without limits, or write the complete STDF record set in T3 (duplicates T6 and delays the first usable CP loop).
+
+T6 has since landed FTR, PCR, HBR, SBR, WIR/WRR/WCR, and multi-site, and switched Functional items to FTR; see [ADR-0011](0011-full-stdf-and-multi-site.md).
 
 </details>

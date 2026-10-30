@@ -7,7 +7,7 @@ namespace SiliconDraft.Core;
 /// <summary>Writes a Dataset's ground-truth manifest and its per-lot exports.</summary>
 internal static class DatasetWriter
 {
-    public const int ManifestSchemaVersion = 5;
+    public const int ManifestSchemaVersion = 6;
     public const string TruthDirectoryName = "_truth";
     public const string ManifestFileName = "manifest.json";
 

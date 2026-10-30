@@ -1,8 +1,12 @@
 namespace SiliconDraft.Core;
 
-/// <summary>The CP outcome of one valid Die: every Test Item result and the assigned Bins.</summary>
+/// <summary>
+/// The CP outcome of one valid Die: every Test Item result, the Tester Site that tested
+/// it, and the assigned Bins.
+/// </summary>
 public sealed record CpDieResult(
     Die Die,
+    int Site,
     IReadOnlyList<TestResult> Tests,
     int HardBin,
     int SoftBin)
@@ -12,10 +16,11 @@ public sealed record CpDieResult(
     /// <summary>The first failing Test Item; its type and Soft Bin determine the Bins.</summary>
     public TestResult? FirstFailure => Tests.FirstOrDefault(test => !test.Passed);
 
-    internal static CpDieResult Create(Die die, IReadOnlyList<TestResult> tests, TestBins bins)
+    internal static CpDieResult Create(
+        Die die, int site, IReadOnlyList<TestResult> tests, TestBins bins)
     {
         var (hardBin, softBin) = bins.Classify(tests);
-        return new CpDieResult(die, tests, hardBin, softBin);
+        return new CpDieResult(die, site, tests, hardBin, softBin);
     }
 }
 

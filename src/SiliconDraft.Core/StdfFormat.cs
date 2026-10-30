@@ -4,9 +4,10 @@ using System.Text;
 namespace SiliconDraft.Core;
 
 /// <summary>
-/// Shared STDF V4 record writing: file header and trailer, record framing,
-/// part-information groups, parametric test records, audit trails, and string encoding.
-/// All records are little-endian; FAR declares the byte order and version.
+/// Shared STDF V4 record writing: file header and trailer, record framing, wafer records,
+/// part-information groups, parametric and functional test records, lot summaries, audit
+/// trails, and string encoding. All records are little-endian; FAR declares the byte order
+/// and version.
 /// </summary>
 internal static class StdfFormat
 {
@@ -22,24 +23,30 @@ internal static class StdfFormat
     private const uint SimulationEpoch = 1_577_836_800; // 2020-01-01T00:00:00Z
 
     private const byte HeadNumber = 1;
-    private const byte SiteNumber = 1;
+    private const byte SiteGroup = 1;
+
+    /// <summary>STDF WCR WF_UNITS value for millimeters.</summary>
+    private const byte WaferUnitsMillimeters = 3;
+
+    /// <summary>STDF PTR OPT_FLAG with every optional field valid; bit 1 is reserved and must be 1.</summary>
+    private const byte PtrOptionalFlags = 0x02;
 
     /// <summary>
-    /// Writes the file header and trailer around one step's part records. Audit records
-    /// go immediately after FAR and before MIR, where STDF V4 expects them.
+    /// Writes the file header and trailer around one step's records. Audit records go
+    /// immediately after FAR and before MIR, where STDF V4 expects them.
     /// </summary>
     public static void WriteFile(
         Stream stream,
         string lotId,
         string productName,
         string stepCode,
-        Action<Stream> writeParts,
+        Action<Stream> writeBody,
         Action<Stream>? writeAudit = null)
     {
         WriteFar(stream);
         writeAudit?.Invoke(stream);
         WriteMir(stream, lotId, productName, stepCode);
-        writeParts(stream);
+        writeBody(stream);
         WriteMrr(stream);
     }
 
@@ -77,27 +84,58 @@ internal static class StdfFormat
             // The remaining optional MIR fields are omitted; record length ends the record.
         });
 
-    public static void WritePir(Stream stream) =>
+    /// <summary>
+    /// SDR describes the site group a multi-site step runs. It follows MIR and precedes
+    /// any record that names a site.
+    /// </summary>
+    public static void WriteSdr(Stream stream, int siteCount)
+    {
+        if (siteCount is < CpConfig.MinSiteCount or > CpConfig.MaxSiteCount)
+        {
+            throw new InvalidOperationException(
+                $"site count {siteCount} is outside the STDF test-site range " +
+                $"{CpConfig.MinSiteCount}..{CpConfig.MaxSiteCount}");
+        }
+
+        WriteRecord(stream, 1, 80, writer =>
+        {
+            writer.Write(HeadNumber); // HEAD_NUM
+            writer.Write(SiteGroup); // SITE_GRP
+            writer.Write((byte)siteCount); // SITE_CNT
+            for (var site = 1; site <= siteCount; site++)
+            {
+                writer.Write((byte)site); // SITE_NUM
+            }
+
+            for (var pair = 0; pair < 8; pair++)
+            {
+                WriteCn(writer, string.Empty); // *_TYP
+                WriteCn(writer, string.Empty); // *_ID
+            }
+        });
+    }
+
+    public static void WritePir(Stream stream, int site) =>
         WriteRecord(stream, 5, 10, writer =>
         {
             writer.Write(HeadNumber); // HEAD_NUM
-            writer.Write(SiteNumber); // SITE_NUM
+            WriteSite(writer, site); // SITE_NUM
         });
 
-    public static void WritePtr(Stream stream, TestResult test)
+    public static void WritePtr(Stream stream, TestResult test, int site)
     {
         var item = test.Item;
         WriteRecord(stream, 15, 10, writer =>
         {
             writer.Write((uint)item.TestNumber); // TEST_NUM
             writer.Write(HeadNumber); // HEAD_NUM
-            writer.Write(SiteNumber); // SITE_NUM
+            WriteSite(writer, site); // SITE_NUM
             writer.Write((byte)(test.Passed ? 0x00 : 0x80)); // TEST_FLG
             writer.Write((byte)0); // PARM_FLG
             writer.Write((float)test.Value); // RESULT
             WriteCn(writer, item.Name); // TEST_TXT
             WriteCn(writer, string.Empty); // ALARM_ID
-            writer.Write((byte)0); // OPT_FLAG: every optional field follows
+            writer.Write(PtrOptionalFlags); // OPT_FLAG: every optional field follows
             writer.Write((sbyte)0); // RES_SCAL
             writer.Write((sbyte)0); // LLM_SCAL
             writer.Write((sbyte)0); // HLM_SCAL
@@ -112,8 +150,65 @@ internal static class StdfFormat
         });
     }
 
+    /// <summary>
+    /// FTR records a functional Test Item. STDF V4 FTR carries no unit or limit fields;
+    /// the Test Item's identity, Tester Site, and pass/fail result are what it reports.
+    /// OPT_FLAG 0xFF marks every optional vector field invalid (bits 6-7 are reserved and
+    /// must be 1) while TEST_TXT and RSLT_TXT still follow in the default-data section.
+    /// </summary>
+    public static void WriteFtr(Stream stream, TestResult test, int site)
+    {
+        var item = test.Item;
+        WriteRecord(stream, 15, 20, writer =>
+        {
+            writer.Write((uint)item.TestNumber); // TEST_NUM
+            writer.Write(HeadNumber); // HEAD_NUM
+            WriteSite(writer, site); // SITE_NUM
+            writer.Write((byte)(test.Passed ? 0x00 : 0x80)); // TEST_FLG
+            writer.Write((byte)0xFF); // OPT_FLAG
+            writer.Write(0u); // CYCL_CNT
+            writer.Write(0u); // REL_VADR
+            writer.Write(0u); // REPT_CNT
+            writer.Write(0u); // NUM_FAIL
+            writer.Write((short)0); // XFAIL_AD
+            writer.Write((short)0); // YFAIL_AD
+            writer.Write((short)0); // VECT_OFF
+            writer.Write((ushort)0); // RTN_ICNT
+            writer.Write((ushort)0); // PGM_ICNT
+            writer.Write((byte)0); // FAIL_PIN: empty Dn
+            WriteCn(writer, string.Empty); // VECT_NAM
+            WriteCn(writer, string.Empty); // TIME_SET
+            WriteCn(writer, string.Empty); // OP_CODE
+            WriteCn(writer, item.Name); // TEST_TXT
+            WriteCn(writer, string.Empty); // ALARM_ID
+            WriteCn(writer, string.Empty); // PROG_TXT
+            WriteCn(writer, test.Passed ? "PASS" : "FAIL"); // RSLT_TXT
+            writer.Write(byte.MaxValue); // PATG_NUM: invalid
+            writer.Write((byte)0); // SPIN_MAP: empty Dn
+        });
+    }
+
+    /// <summary>
+    /// Writes the record type the Test Item's result requires: Numeric items are
+    /// parametric PTRs and Functional items are FTRs.
+    /// </summary>
+    public static void WriteTestRecord(Stream stream, TestResult test, int site)
+    {
+        if (test.Item is FunctionalTestItem)
+        {
+            WriteFtr(stream, test, site);
+        }
+        else
+        {
+            WritePtr(stream, test, site);
+        }
+    }
+
+    public static char TestTypeCode(TestItem item) => item is FunctionalTestItem ? 'F' : 'P';
+
     public static void WritePrr(
         Stream stream,
+        int site,
         int x,
         int y,
         bool passed,
@@ -126,7 +221,7 @@ internal static class StdfFormat
         WriteRecord(stream, 5, 20, writer =>
         {
             writer.Write(HeadNumber); // HEAD_NUM
-            writer.Write(SiteNumber); // SITE_NUM
+            WriteSite(writer, site); // SITE_NUM
             // PART_FLG: bit 3 marks a failing part; bit 4 stays 0 so the P/F flag is valid.
             writer.Write((byte)(passed ? 0x00 : 0x08));
             writer.Write((ushort)testCount); // NUM_TEST
@@ -151,6 +246,91 @@ internal static class StdfFormat
             WriteCn(writer, commandLine); // CMD_LINE
         });
 
+    public static void WriteWir(Stream stream, string waferId) =>
+        WriteRecord(stream, 2, 10, writer =>
+        {
+            writer.Write(HeadNumber); // HEAD_NUM
+            writer.Write(SiteGroup); // SITE_GRP
+            writer.Write(SimulationEpoch); // START_T
+            WriteCn(writer, waferId); // WAFER_ID
+        });
+
+    public static void WriteWcr(Stream stream, WaferGeometry geometry, int centerX, int centerY)
+    {
+        EnsureCoordinateRange(centerX, centerY);
+        var (positiveX, positiveY) = PositiveDirections(geometry);
+        WriteRecord(stream, 2, 30, writer =>
+        {
+            writer.Write((float)geometry.DiameterMm); // WAFR_SIZ
+            writer.Write((float)geometry.DieWidthMm); // DIE_WID
+            writer.Write((float)geometry.DieHeightMm); // DIE_HT
+            writer.Write(WaferUnitsMillimeters); // WF_UNITS
+            writer.Write(FlatDirection(geometry.NotchAngleDeg)); // WF_FLAT
+            writer.Write((short)centerX); // CENTER_X
+            writer.Write((short)centerY); // CENTER_Y
+            writer.Write((sbyte)positiveX); // POS_X
+            writer.Write((sbyte)positiveY); // POS_Y
+        });
+    }
+
+    public static void WriteWrr(
+        Stream stream, string waferId, int partCount, int goodCount) =>
+        WriteRecord(stream, 2, 20, writer =>
+        {
+            writer.Write(HeadNumber); // HEAD_NUM
+            writer.Write(SiteGroup); // SITE_GRP
+            writer.Write(SimulationEpoch); // FINISH_T
+            writer.Write((uint)partCount); // PART_CNT
+            writer.Write(0u); // RTST_CNT
+            writer.Write(0u); // ABRT_CNT
+            writer.Write((uint)goodCount); // GOOD_CNT
+            writer.Write((uint)partCount); // FUNC_CNT: every part is functional
+            WriteCn(writer, waferId); // WAFER_ID
+        });
+
+    public static void WriteTsr(
+        Stream stream, int site, TestItem item, int executionCount, int failCount) =>
+        WriteRecord(stream, 10, 30, writer =>
+        {
+            writer.Write(HeadNumber); // HEAD_NUM
+            WriteSite(writer, site); // SITE_NUM
+            writer.Write((byte)TestTypeCode(item)); // TEST_TYP
+            writer.Write((uint)item.TestNumber); // TEST_NUM
+            writer.Write((uint)executionCount); // EXEC_CNT
+            writer.Write((uint)failCount); // FAIL_CNT
+            writer.Write(0u); // ALRM_CNT
+            WriteCn(writer, item.Name); // TEST_NAM
+        });
+
+    public static void WriteHbr(Stream stream, int site, BinCount bin) =>
+        WriteBinRecord(stream, 1, 40, site, bin);
+
+    public static void WriteSbr(Stream stream, int site, BinCount bin) =>
+        WriteBinRecord(stream, 1, 50, site, bin);
+
+    private static void WriteBinRecord(
+        Stream stream, byte type, byte sub, int site, BinCount bin) =>
+        WriteRecord(stream, type, sub, writer =>
+        {
+            writer.Write(HeadNumber); // HEAD_NUM
+            WriteSite(writer, site); // SITE_NUM
+            writer.Write((ushort)bin.Number); // BIN_NUM
+            writer.Write((uint)bin.Count); // BIN_CNT
+            writer.Write((byte)(bin.Pass ? 'P' : 'F')); // BIN_PF
+            WriteCn(writer, bin.Name); // BIN_NAM
+        });
+
+    public static void WritePcr(Stream stream, int site, int partCount, int goodCount) =>
+        WriteRecord(stream, 1, 30, writer =>
+        {
+            writer.Write(HeadNumber); // HEAD_NUM
+            WriteSite(writer, site); // SITE_NUM
+            writer.Write((uint)partCount); // PART_CNT
+            writer.Write(0u); // RTST_CNT
+            writer.Write(0u); // ABRT_CNT
+            writer.Write((uint)goodCount); // GOOD_CNT
+        });
+
     public static void WriteMrr(Stream stream) =>
         WriteRecord(stream, 1, 20, writer =>
         {
@@ -159,6 +339,37 @@ internal static class StdfFormat
             WriteCn(writer, string.Empty); // USR_DESC
             WriteCn(writer, string.Empty); // EXC_DESC
         });
+
+    private static (byte PositiveX, byte PositiveY) PositiveDirections(WaferGeometry geometry)
+    {
+        var (axisX, _) = geometry.PhysicalDirection(1, 0);
+        var (_, rowY) = geometry.PhysicalDirection(0, 1);
+        var positiveX = axisX > 0 ? (byte)1 : axisX < 0 ? (byte)2 : (byte)0;
+        var positiveY = rowY > 0 ? (byte)1 : rowY < 0 ? (byte)2 : (byte)0;
+        return (positiveX, positiveY);
+    }
+
+    /// <summary>Maps the Notch angle to the STDF WF_FLAT value; 255 means unknown.</summary>
+    private static byte FlatDirection(double notchAngleDeg) => notchAngleDeg switch
+    {
+        90 => 0, // up
+        270 => 1, // down
+        180 => 2, // left
+        0 => 3, // right
+        _ => 255,
+    };
+
+    private static void WriteSite(BinaryWriter writer, int site)
+    {
+        if (site is < CpConfig.MinSiteCount or > CpConfig.MaxSiteCount)
+        {
+            throw new InvalidOperationException(
+                $"site {site} is outside the STDF test-site range " +
+                $"{CpConfig.MinSiteCount}..{CpConfig.MaxSiteCount}");
+        }
+
+        writer.Write((byte)site);
+    }
 
     private static void EnsureCoordinateRange(int x, int y)
     {

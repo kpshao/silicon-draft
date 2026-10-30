@@ -22,7 +22,7 @@ public sealed class FtManifestTests
     {
         var (dataset, manifest) = Export();
 
-        Assert.Equal(5, manifest.RootElement.GetProperty("manifestSchemaVersion").GetInt32());
+        Assert.Equal(6, manifest.RootElement.GetProperty("manifestSchemaVersion").GetInt32());
         var resolvedFt = manifest.RootElement.GetProperty("resolvedConfig").GetProperty("ft");
         Assert.Equal(0, resolvedFt.GetProperty("assemblyLoss").GetInt32());
         Assert.Equal(0, resolvedFt.GetProperty("escapeRate").GetDouble());

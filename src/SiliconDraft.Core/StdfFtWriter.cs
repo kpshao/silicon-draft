@@ -3,45 +3,69 @@ using System.Globalization;
 namespace SiliconDraft.Core;
 
 /// <summary>
-/// Writes the minimal STDF V4 FT file: FAR, one ATR per FT Unit, MIR, one PIR/PTR/PRR
-/// group per FT Unit, and MRR. The ATRs sit where V4 expects audit records and carry
-/// the CP-FT Traceability fields, keyed by UNIT_ID, so a YMS can join FT records back
-/// to their source Wafer and Die.
+/// Writes one Lot's STDF V4 FT file. The ATRs sit where V4 expects audit records and
+/// carry the CP-FT Traceability fields, keyed by UNIT_ID, so a YMS can join FT records
+/// back to their source Wafer and Die.
 /// </summary>
 internal static class StdfFtWriter
 {
     public const string FileSuffix = "_FT.stdf";
 
+    private const int FtSite = 1;
+
     public static string FileName(string lotId) => $"{lotId}{FileSuffix}";
 
     public static void Write(string path, Dataset dataset, Lot lot)
     {
+        var program = dataset.FtProgram;
         using var stream = new MemoryStream();
         StdfFormat.WriteFile(
             stream,
             lot.Id,
             dataset.ProductName,
             "FT",
-            parts =>
+            body =>
             {
-                foreach (var unit in lot.FtUnits)
+                var (centerX, centerY) = dataset.DieMap.CenterDieIndex();
+                StdfFormat.WriteSdr(body, program.SiteCount);
+                var parts = new List<StdfPartOutcome>(lot.FtUnits.Count);
+                // FT Units traced to the same source Wafer form one WIR/WRR group, so the
+                // wafer records carry the unit counts back to the wafer a YMS knows.
+                foreach (var sourceWafer in lot.FtUnits.GroupBy(unit => unit.SourceWaferId))
                 {
-                    StdfFormat.WritePir(parts);
-                    foreach (var test in unit.Tests)
+                    var units = sourceWafer.ToArray();
+                    StdfFormat.WriteWir(body, sourceWafer.Key);
+                    StdfFormat.WriteWcr(body, dataset.Config.Wafer, centerX, centerY);
+                    foreach (var unit in units)
                     {
-                        StdfFormat.WritePtr(parts, test);
+                        StdfFormat.WritePir(body, FtSite);
+                        foreach (var test in unit.Tests)
+                        {
+                            StdfFormat.WriteTestRecord(body, test, FtSite);
+                        }
+
+                        StdfFormat.WritePrr(
+                            body,
+                            FtSite,
+                            unit.SourceDie.X,
+                            unit.SourceDie.Y,
+                            unit.Passed,
+                            unit.Tests.Count,
+                            unit.HardBin,
+                            unit.SoftBin,
+                            unit.Id);
+                        parts.Add(new StdfPartOutcome(
+                            FtSite, unit.Tests, unit.HardBin, unit.SoftBin));
                     }
 
-                    StdfFormat.WritePrr(
-                        parts,
-                        unit.SourceDie.X,
-                        unit.SourceDie.Y,
-                        unit.Passed,
-                        unit.Tests.Count,
-                        unit.HardBin,
-                        unit.SoftBin,
-                        unit.Id);
+                    StdfFormat.WriteWrr(
+                        body,
+                        sourceWafer.Key,
+                        units.Length,
+                        units.Count(unit => unit.Passed));
                 }
+
+                StdfSummaryWriter.Write(body, program, program.SiteCount, parts);
             },
             audit =>
             {

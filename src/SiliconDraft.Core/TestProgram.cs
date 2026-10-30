@@ -1,13 +1,14 @@
 namespace SiliconDraft.Core;
 
 /// <summary>
-/// The effective Test Program for one test step: the ordered Test Items and the Bin
-/// numbering applied to every tested Die or FT Unit.
+/// The effective Test Program for one test step: the ordered Test Items, the Bin
+/// numbering, and the Tester Sites the step runs in parallel.
 /// </summary>
 public sealed record TestProgram(
     string CatalogVersion,
     IReadOnlyList<TestItem> Items,
-    TestBins Bins);
+    TestBins Bins,
+    int SiteCount);
 
 /// <summary>
 /// The Hard and Soft Bin numbering a Test Program applies. The first failing Test Item
@@ -82,13 +83,21 @@ public sealed record NumericTestItem : TestItem
         Limits specLimits,
         Limits testLimits,
         int failSoftBin,
-        Distribution distribution)
+        Distribution distribution,
+        IReadOnlyList<double> siteOffsets)
         : base(testNumber, name, unit, specLimits, testLimits, failSoftBin)
     {
         Distribution = distribution;
+        SiteOffsets = siteOffsets;
     }
 
     public Distribution Distribution { get; }
+
+    /// <summary>
+    /// Additive measurement offset per Tester Site, in this item's unit. Empty for FT
+    /// items, which run on one site without offsets.
+    /// </summary>
+    public IReadOnlyList<double> SiteOffsets { get; }
 }
 
 /// <summary>A Test Item that yields pass/fail against a pattern or condition.</summary>

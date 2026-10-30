@@ -96,6 +96,8 @@ internal sealed class PcmSiteDocument
 
 internal sealed class CpDocument
 {
+    public int? SiteCount { get; init; }
+
     public CpBinsDocument? Bins { get; init; }
 
     public List<CpTestItemDocument>? TestItems { get; init; }
@@ -121,6 +123,8 @@ internal sealed class CpTestItemDocument
     public LimitsDocument? TestLimits { get; init; }
 
     public int? FailSoftBin { get; init; }
+
+    public List<double?>? SiteOffsets { get; init; }
 }
 
 internal sealed class FtDocument

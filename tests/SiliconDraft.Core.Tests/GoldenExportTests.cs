@@ -31,9 +31,39 @@ public sealed class GoldenExportTests
         AssertGolden("LOT-0001_WAT_long.txt", Assert.Single(result.WatPaths));
     }
 
+    [Fact]
+    public void GoldenFiles_ContainTheCompleteStdfRecordSet()
+    {
+        var cpRecords = StdfReader.Read(
+            Path.Combine(AppContext.BaseDirectory, "Golden", "LOT-0001_CP.stdf"));
+        var ftRecords = StdfReader.Read(
+            Path.Combine(AppContext.BaseDirectory, "Golden", "LOT-0001_FT.stdf"));
+
+        foreach (var records in new[] { cpRecords, ftRecords })
+        {
+            var kinds = records.Select(record => (record.Type, record.Sub)).ToHashSet();
+            foreach (var kind in StdfRecordKinds.FullV4Set)
+            {
+                Assert.Contains(kind, kinds);
+            }
+        }
+
+        var cpSdr = StdfReader.ParseSdr(
+            cpRecords.First(record => record.Type == 1 && record.Sub == 80));
+        Assert.Equal(8, cpSdr.SiteCount); // CP defaults to eight Tester Sites
+        Assert.Contains(ftRecords, record => record.Type == 0 && record.Sub == 20);
+    }
+
     private static void AssertGolden(string relativePath, string actualPath)
     {
-        var expectedPath = Path.Combine(AppContext.BaseDirectory, "Golden", relativePath);
+        var expectedPath = Path.Combine(GoldenDirectory(), relativePath);
+        if (Environment.GetEnvironmentVariable("SILICONDRAFT_UPDATE_GOLDEN") == "1")
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(expectedPath)!);
+            File.Copy(actualPath, expectedPath, overwrite: true);
+            return;
+        }
+
         Assert.True(File.Exists(expectedPath), $"missing golden file '{expectedPath}'");
 
         var expected = File.ReadAllBytes(expectedPath);
@@ -49,6 +79,17 @@ public sealed class GoldenExportTests
             $"(golden {expected.Length} bytes, actual {actual.Length} bytes). " +
             "Review the change and regenerate the golden file deliberately if intended.");
     }
+
+    /// <summary>
+    /// Normal runs read the copies next to the test binary. With
+    /// <c>SILICONDRAFT_UPDATE_GOLDEN=1</c> the test writes the source-tree goldens
+    /// deliberately, so a reviewed format change updates the checked-in files.
+    /// </summary>
+    private static string GoldenDirectory() =>
+        Environment.GetEnvironmentVariable("SILICONDRAFT_UPDATE_GOLDEN") == "1"
+            // <project>/bin/<configuration>/<target-framework> -> <project>/Golden
+            ? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Golden"))
+            : Path.Combine(AppContext.BaseDirectory, "Golden");
 
     private static int FirstDifference(byte[] expected, byte[] actual)
     {
