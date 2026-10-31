@@ -65,13 +65,13 @@ dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -
 
 ## CP catalog 与 bins
 
-内置的最小 CP catalog（`cp-catalog-v2`）包含六个 Numeric Test Item（Vt、Idsat、Iddq、RdsOn、Leakage、Vf）和两个 Functional Test Item（Scan、Bist）。每个 item 声明单位、默认分布、spec limits、test limits 和默认失败 Soft Bin；Numeric item 还声明 8 个 Tester Site 的默认测量偏移。每个有效 Die 对每个 item 得到一个结果；Partial Die 不测试。
+内置的完整 CP catalog v1（`cp-catalog-v3`）包含 20 个 Numeric Test Item 和 3 个 Functional Test Item。Numeric item 覆盖阈值电压（Vt、Vtp、Vtlin、Vtsat、Vfb）、驱动电流与跨导（Idsat、IdsatP、Gm）、漏电（Iddq、Leakage、Ioff）、导通与接触电阻（RdsOn、Rs、Rc）、栅氧特性（Cox、Vbd、Ssw、Dibl）、电容（Cin）和正向压降（Vf）；Functional item 为 Scan、Bist 和 Mbist。每个 item 声明单位、默认分布、spec limits、test limits 和默认失败 Soft Bin；Numeric item 还声明 8 个 Tester Site 的默认测量偏移。每个有效 Die 对每个 item 得到一个结果；Partial Die 不测试。
 
 - 当结果落在 test limits 之外时 Test Item 失败；spec limits 与 test limits 一起导出。两个范围不做交叉校验，因此配置可以刻意设置更宽的 test limits。
 - 第一个失败的 item 决定结果：Numeric 失败映射到 Parametric Fail Hard Bin，Functional 失败映射到 Functional Fail Hard Bin，item 的失败 Soft Bin 标识失败内容。通过的 die 得到 Pass Hard 与 Soft Bin。
 - CP 默认在 8 个 Tester Site 上并行测试。`cp.siteCount` 可配置为 1–254；每个 Die 的 Tester Site 由 seed 与 Die 身份确定性派生，因此与执行顺序无关。
 - Numeric Test Item 支持 per-item site offset：`cp.testItems[].siteOffsets` 必须为每个 Tester Site 提供一个有限的加性偏移，单位与 item 相同。未配置时使用 catalog 的默认偏移模式，并按 `siteCount` 循环展开。Functional item 不接受 site offsets。
-- 可选的 `cp` 段覆盖 limits、Bin 编号和 site 设置。未知 item、非有限或倒置的 limits、越界的 Bin 编号、重复的 Soft Bin，以及长度与 `siteCount` 不符的 offsets 都会以退出码 2 拒绝。
+- 可选的 `cp` 段覆盖 limits、Bin 编号和 site 设置。`cp.testItems[]` 按 `name` 匹配 catalog item 时覆盖它；使用 catalog 中不存在的 `name` 则扩展 Test Program，此时必须提供 `testNumber`、`type`（`numeric` 或 `functional`）和 `failSoftBin`，Numeric item 还需 `unit`、`testLimits` 与 `distribution`（`kind`、`mean`、`sigma`），Functional item 需 `passRate` 并默认使用 P/F limits，其 limits 必须包含 pass 值 1；`specLimits` 可选并默认等于 `testLimits`。覆盖结果与自定义项都记录在 Resolved Config 中。覆盖项提供定义字段、非有限或倒置的 limits、越界或重复的 Bin/test number、长度与 `siteCount` 不符的 offsets 都会以退出码 2 拒绝。
 - manifest 记录 catalog 版本、良率，以及每个 Dataset 和 Lot 的 Hard/Soft Bin 计数；这些计数与 STDF 文件中的 PRR 记录对账。STDF 的 SDR、PCR、HBR、SBR 和 TSR 按 Tester Site 给出，因此导入后可以直接做 site-to-site 分析。WIR/WCR/WRR 只出现在 CP 文件。
 
 ```json
@@ -90,6 +90,15 @@ dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -
       "testLimits": { "low": 0.4, "high": 0.5 },
       "failSoftBin": 100,
       "siteOffsets": [0, 0.002, -0.0015, 0.001, -0.002, 0.0015, -0.001, 0.0005]
+    },
+    {
+      "name": "Vbr",
+      "testNumber": 1021,
+      "unit": "V",
+      "type": "numeric",
+      "testLimits": { "low": 26, "high": 34 },
+      "failSoftBin": 120,
+      "distribution": { "kind": "normal", "mean": 30, "sigma": 1.3 }
     }
   ]
 }
@@ -99,11 +108,12 @@ STDF 的完整记录集与 multi-site 模型记录在 [ADR-0011](docs/adr/0011-f
 
 ## FT 与 CP-FT 追溯
 
-内置的最小 FT catalog（`ft-catalog-v1`）包含六个 Numeric Test Item（Icc、Voh、Vol、Ioh、Iol、Tr）和两个 Functional Test Item（ScanFT、BistFT）。每个 FT Unit 都要经过全部 item 测试，并得到与 CP 相同的 Bin 处理：第一个失败的 item 决定结果。
+内置的完整 FT catalog v1（`ft-catalog-v2`）包含 15 个 Numeric Test Item 和 3 个 Functional Test Item。Numeric item 覆盖静态电流（Icc）、输出与输入电平（Voh、Vol、Vih、Vil）、输出驱动与输入漏电（Ioh、Iol、Iih、Iil）、时序（Tr、Tf、Tpd、Fmax）、导通电阻（Ron）和输入电容（Cin）；Functional item 为 ScanFT、BistFT 和 MbistFT。每个 FT Unit 都要经过全部 item 测试，并得到与 CP 相同的 Bin 处理：第一个失败的 item 决定结果。
 
 - 默认情况下每个 CP 通过的 Die 恰好成为一个 FT Unit。`ft.assemblyLoss` 从 Dataset 中移除相应数量的 CP 通过 Die；`ft.escapeRate` 按该比例接纳 CP 失败的 Die 作为 Escape。因此 FT Unit 数 = CP 通过 Die − Assembly Loss + Escape。若 Dataset 的 CP 通过 Die 少于 `assemblyLoss`，生成失败。
 - FT Unit 的稳定 id 为 `<waferId>:<x>,<y>`，与其 CP PART_ID 是同一字符串，因此 CP 与 FT 记录按来源 Die join。每个 Lot 的 Assembly Lot 为 `ALOT-<LOTID>`。
 - FT 复用生效的 CP Bin 编号：pass Hard/Soft Bin 以及 parametric/functional 失败 Hard Bin；FT Test Item 携带自己的失败 Soft Bin。Failure Soft Bin 是 step-specific 的，因此同一个编号在 CP 和 FT 可能表示不同的失败。与 FT 失败 Soft Bin 冲突的 `cp.bins.passSoftBin` 会被拒绝。
+- `ft.testItems[]` 按 `name` 覆盖 catalog item 的 `specLimits`、`testLimits` 和 `failSoftBin`；使用 catalog 中不存在的 `name` 时扩展 FT Test Program，字段要求与 CP 相同，但 FT 只使用一个 Tester Site，不接受 `siteOffsets`。覆盖与扩展后的 FT 失败 Soft Bin 必须唯一，且不能与 `cp.bins.passSoftBin` 冲突。
 - `assemblyLoss` 默认 0，必须大于等于 0；`escapeRate` 默认 0，必须在 0 与 1 之间。未知属性和非整数 `assemblyLoss` 会被拒绝。
 
 ```json
@@ -117,12 +127,13 @@ STDF FT 文件（`<LOTID>_FT.stdf`）包含 FAR、每个 FT Unit 一条 ATR、`T
 
 ## WAT catalog 与 TXT 导出
 
-内置的最小 WAT catalog（`wat-catalog-v1`）包含八个 Numeric Test Item：Vtn、Vtp、IdsatN、IdsatP、Tox、Rs、Rc 和 Vbd。每个 Wafer 在每个 PCM Site 都进行测量：每个 site 上每个 Test Item 一个值，从 catalog 的默认分布采样。每个值由 Dataset seed、Lot、Wafer、Site 和 Test Item 播种，因此相同配置与 seed 可复现文件。
+内置的完整 WAT catalog v1（`wat-catalog-v2`）包含 12 个 Numeric Test Item：Vtn、Vtp、IdsatN、IdsatP、Tox、Rs、Rc、Vbd、IoffN、IoffP、Ssw 和 Vfb。每个 Wafer 在每个 PCM Site 都进行测量：每个 site 上每个 Test Item 一个值，从 catalog 的默认分布采样。每个值由 Dataset seed、Lot、Wafer、Site 和 Test Item 播种，因此相同配置与 seed 可复现文件。
 
 - 默认布局为九个 PCM Site：晶圆中心，加上晶圆中心到边缘中点处的八个点，按 45° 递增。坐标是相对晶圆中心的毫米值。
 - `wat.sites` 替换默认布局。每个 site 需要 `id`、`xMm` 和 `yMm`；id 必须唯一，且每个 site 必须位于晶圆内。
 - `wat.template` 为 `long`（默认）或 `wide`。
 - `wat.organization` 为 `perLot`（默认）或 `perWafer`。
+- `wat.testItems[]` 按 `name` 覆盖 catalog item 的 `specLimits`、`testLimits` 和 `distribution`；使用 catalog 中不存在的 `name` 时扩展 WAT Test Program，此时必须提供 `testNumber`、`unit`、`testLimits` 和 `distribution`，`specLimits` 可选并默认等于 `testLimits`。
 
 ```json
 "wat": {
@@ -233,13 +244,13 @@ See [`examples/geometry.json`](examples/geometry.json) for a rotated, offset con
 
 ## CP catalog and bins
 
-The built-in minimal CP catalog (`cp-catalog-v2`) has six Numeric Test Items (Vt, Idsat, Iddq, RdsOn, Leakage, Vf) and two Functional Test Items (Scan, Bist). Each item declares a unit, a default distribution, spec limits, test limits, and a default failure Soft Bin; Numeric items also declare default measurement offsets for eight Tester Sites. Every valid Die receives one result per item; Partial Die are not tested.
+The built-in complete CP catalog v1 (`cp-catalog-v3`) has 20 Numeric Test Items and three Functional Test Items. The Numeric items cover threshold voltage (Vt, Vtp, Vtlin, Vtsat, Vfb), drive current and transconductance (Idsat, IdsatP, Gm), leakage (Iddq, Leakage, Ioff), on-resistance and contact resistance (RdsOn, Rs, Rc), gate-oxide behavior (Cox, Vbd, Ssw, Dibl), capacitance (Cin), and forward voltage (Vf); the Functional items are Scan, Bist, and Mbist. Each item declares a unit, a default distribution, spec limits, test limits, and a default failure Soft Bin; Numeric items also declare default measurement offsets for eight Tester Sites. Every valid Die receives one result per item; Partial Die are not tested.
 
 - A Test Item fails when its result falls outside its test limits; spec limits are exported alongside them. The two ranges are not cross-validated, so a configuration can deliberately set wider test limits.
 - The first failing item decides the outcome: a Numeric failure maps to the Parametric Fail Hard Bin, a Functional failure to the Functional Fail Hard Bin, and the item's failure Soft Bin identifies what failed. Passing die get the Pass Hard and Soft Bins.
 - CP tests on eight Tester Sites in parallel by default. `cp.siteCount` is configurable from 1 to 254; each Die's Tester Site is derived deterministically from the seed and the Die identity, so it is independent of execution order.
 - Numeric Test Items support a per-item site offset: `cp.testItems[].siteOffsets` must supply one finite additive offset per Tester Site, in the item's unit. When omitted, the catalog's default offset pattern is expanded cyclically to the configured `siteCount`. Functional items reject site offsets.
-- The optional `cp` section overrides limits, Bin numbers, and site settings. Unknown items, non-finite or inverted limits, out-of-range Bin numbers, duplicate Soft Bins, and offsets whose length differs from `siteCount` are rejected with exit code 2.
+- The optional `cp` section overrides limits, Bin numbers, and site settings. `cp.testItems[]` overrides a catalog item when its `name` matches; a `name` the catalog does not define extends the Test Program, and then `testNumber`, `type` (`numeric` or `functional`), and `failSoftBin` are required, Numeric items also need `unit`, `testLimits`, and `distribution` (`kind`, `mean`, `sigma`), and Functional items need `passRate` and default to the P/F limits, whose limits must include the pass value 1; `specLimits` is optional and defaults to `testLimits`. Overrides and custom items are both recorded in the Resolved Config. Definition fields on an override, non-finite or inverted limits, out-of-range or duplicate Bin/test numbers, and offsets whose length differs from `siteCount` are rejected with exit code 2.
 - The manifest records the catalog version, yield, and Hard/Soft Bin counts per Dataset and Lot; those counts reconcile with the PRR records in the STDF file. The STDF SDR, PCR, HBR, SBR, and TSR records are reported per Tester Site, so site-to-site analysis works directly after import. WIR/WCR/WRR appear only in the CP file.
 
 ```json
@@ -258,6 +269,15 @@ The built-in minimal CP catalog (`cp-catalog-v2`) has six Numeric Test Items (Vt
       "testLimits": { "low": 0.4, "high": 0.5 },
       "failSoftBin": 100,
       "siteOffsets": [0, 0.002, -0.0015, 0.001, -0.002, 0.0015, -0.001, 0.0005]
+    },
+    {
+      "name": "Vbr",
+      "testNumber": 1021,
+      "unit": "V",
+      "type": "numeric",
+      "testLimits": { "low": 26, "high": 34 },
+      "failSoftBin": 120,
+      "distribution": { "kind": "normal", "mean": 30, "sigma": 1.3 }
     }
   ]
 }
@@ -267,11 +287,12 @@ The full STDF record set and multi-site model are recorded in [ADR-0011](docs/ad
 
 ## FT and CP-FT traceability
 
-The built-in minimal FT catalog (`ft-catalog-v1`) has six Numeric Test Items (Icc, Voh, Vol, Ioh, Iol, Tr) and two Functional Test Items (ScanFT, BistFT). Every FT Unit is tested against all of them and gets the same Bins treatment as CP: the first failing item decides the outcome.
+The built-in complete FT catalog v1 (`ft-catalog-v2`) has 15 Numeric Test Items and three Functional Test Items. The Numeric items cover quiescent current (Icc), output and input levels (Voh, Vol, Vih, Vil), output drive and input leakage (Ioh, Iol, Iih, Iil), timing (Tr, Tf, Tpd, Fmax), on-resistance (Ron), and input capacitance (Cin); the Functional items are ScanFT, BistFT, and MbistFT. Every FT Unit is tested against all of them and gets the same Bins treatment as CP: the first failing item decides the outcome.
 
 - By default every CP-passing Die becomes exactly one FT Unit. `ft.assemblyLoss` removes that many CP-passing Die from the Dataset; `ft.escapeRate` admits that fraction of CP-failing Die as Escapes. The FT Unit count is therefore CP-passing Die minus Assembly Loss plus Escapes. A Dataset with fewer CP-passing Die than `assemblyLoss` fails generation.
 - An FT Unit's stable id is `<waferId>:<x>,<y>`, the same string as its CP PART_ID, so CP and FT records join on the source Die. Each Lot's Assembly Lot is `ALOT-<LOTID>`.
 - FT reuses the effective CP Bin numbering for the pass Hard/Soft Bin and the parametric/functional failure Hard Bins; FT Test Items carry their own failure Soft Bins. Failure Soft Bins are step-specific, so the same number may denote a different failure at CP and FT. A `cp.bins.passSoftBin` that collides with an FT failure Soft Bin is rejected.
+- `ft.testItems[]` overrides a catalog item's `specLimits`, `testLimits`, and `failSoftBin` by `name`; a `name` the catalog does not define extends the FT Test Program with the same required fields as CP, except that FT runs on one Tester Site and rejects `siteOffsets`. Failure Soft Bins after overrides and extensions must be unique and must not collide with `cp.bins.passSoftBin`.
 - `assemblyLoss` defaults to 0 and must be 0 or greater; `escapeRate` defaults to 0 and must be between 0 and 1. Unknown properties and non-integer `assemblyLoss` are rejected.
 
 ```json
@@ -285,12 +306,13 @@ The STDF FT file (`<LOTID>_FT.stdf`) contains FAR, one ATR per FT Unit, MIR with
 
 ## WAT catalog and TXT export
 
-The built-in minimal WAT catalog (`wat-catalog-v1`) has eight Numeric Test Items: Vtn, Vtp, IdsatN, IdsatP, Tox, Rs, Rc, and Vbd. Every Wafer is measured at every PCM Site: one value per Test Item at each site, sampled from the catalog's default distribution. Each value is seeded from the Dataset seed, Lot, Wafer, Site, and Test Item, so the same configuration and seed reproduce the files.
+The built-in complete WAT catalog v1 (`wat-catalog-v2`) has 12 Numeric Test Items: Vtn, Vtp, IdsatN, IdsatP, Tox, Rs, Rc, Vbd, IoffN, IoffP, Ssw, and Vfb. Every Wafer is measured at every PCM Site: one value per Test Item at each site, sampled from the catalog's default distribution. Each value is seeded from the Dataset seed, Lot, Wafer, Site, and Test Item, so the same configuration and seed reproduce the files.
 
 - The default layout is nine PCM Sites: the wafer center plus eight points halfway between the center and the wafer edge, at 45° increments. Coordinates are millimeters from the wafer center.
 - `wat.sites` replaces the default layout. Each site needs an `id`, `xMm`, and `yMm`; ids must be unique and every site must lie within the wafer.
 - `wat.template` is `long` (default) or `wide`.
 - `wat.organization` is `perLot` (default) or `perWafer`.
+- `wat.testItems[]` overrides a catalog item's `specLimits`, `testLimits`, and `distribution` by `name`; a `name` the catalog does not define extends the WAT Test Program, requiring `testNumber`, `unit`, `testLimits`, and `distribution`, with `specLimits` optional and defaulting to `testLimits`.
 
 ```json
 "wat": {

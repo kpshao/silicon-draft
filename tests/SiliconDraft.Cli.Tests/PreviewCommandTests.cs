@@ -35,8 +35,8 @@ public sealed class PreviewCommandTests
         Assert.Contains("of 2517 tested", output);
         Assert.Contains("yield", output);
         Assert.Contains("Partial die: 336 per wafer, 336 total (retained: 0)", output);
-        Assert.Contains("CP: 8 Tester Sites, 8 test items", output);
-        Assert.Contains("WAT: 9 PCM sites, 8 test items, 72 measurements per wafer", output);
+        Assert.Contains("CP: 8 Tester Sites, 23 test items", output);
+        Assert.Contains("WAT: 9 PCM sites, 12 test items, 108 measurements per wafer", output);
         Assert.False(Directory.Exists(workspace.PathFor("out")));
     }
 

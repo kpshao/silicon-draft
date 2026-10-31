@@ -12,8 +12,8 @@ internal static class DatasetGenerator
 
         var dieMap = dieMapResult.Map;
         var testProgram = CpCatalog.Resolve(config.Cp);
-        var ftProgram = FtCatalog.CreateProgram(testProgram.Bins);
-        var watProgram = WatCatalog.CreateProgram();
+        var ftProgram = FtCatalog.CreateProgram(config.Ft, testProgram.Bins);
+        var watProgram = WatCatalog.CreateProgram(config.Wat);
         var wafersByLot = config.Lots
             .Select(lot => (
                 LotId: lot.Id,

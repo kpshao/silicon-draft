@@ -1,19 +1,26 @@
+using System.Text.Json.Serialization;
+
 namespace SiliconDraft.Core;
 
 /// <summary>
 /// Effective WAT settings after defaults are applied: the PCM Sites measured on every
-/// Wafer and the TXT export choices. Recorded in the Resolved Config.
+/// Wafer, the TXT export choices, and the Test Item overrides and custom items.
+/// Recorded in the Resolved Config.
 /// </summary>
 public sealed record WatConfig
 {
     internal WatConfig(
         IReadOnlyList<PcmSite> sites,
         WatTemplate template,
-        WatFileOrganization organization)
+        WatFileOrganization organization,
+        IReadOnlyList<WatTestItemOverride> testItems,
+        IReadOnlyList<WatTestItem> customTestItems)
     {
         Sites = sites;
         Template = template;
         Organization = organization;
+        TestItems = testItems;
+        CustomTestItems = customTestItems;
     }
 
     /// <summary>The PCM Sites measured on every Wafer, in file order.</summary>
@@ -22,7 +29,23 @@ public sealed record WatConfig
     public WatTemplate Template { get; }
 
     public WatFileOrganization Organization { get; }
+
+    /// <summary>Overrides applied to catalog WAT Test Items, in configuration order.</summary>
+    public IReadOnlyList<WatTestItemOverride> TestItems { get; }
+
+    /// <summary>WAT Test Items the configuration adds beyond the catalog.</summary>
+    public IReadOnlyList<WatTestItem> CustomTestItems { get; }
 }
+
+/// <summary>An override of a catalog WAT Test Item; unset fields keep the catalog value.</summary>
+public sealed record WatTestItemOverride(
+    string Name,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    Limits? SpecLimits,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    Limits? TestLimits,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    Distribution? Distribution);
 
 /// <summary>
 /// A fixed wafer location where PCM structures are measured, in millimeters from the

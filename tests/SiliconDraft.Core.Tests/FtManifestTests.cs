@@ -22,13 +22,13 @@ public sealed class FtManifestTests
     {
         var (dataset, manifest) = Export();
 
-        Assert.Equal(6, manifest.RootElement.GetProperty("manifestSchemaVersion").GetInt32());
+        Assert.Equal(7, manifest.RootElement.GetProperty("manifestSchemaVersion").GetInt32());
         var resolvedFt = manifest.RootElement.GetProperty("resolvedConfig").GetProperty("ft");
         Assert.Equal(0, resolvedFt.GetProperty("assemblyLoss").GetInt32());
         Assert.Equal(0, resolvedFt.GetProperty("escapeRate").GetDouble());
 
         var ft = manifest.RootElement.GetProperty("dataset").GetProperty("ft");
-        Assert.Equal("ft-catalog-v1", ft.GetProperty("catalogVersion").GetString());
+        Assert.Equal("ft-catalog-v2", ft.GetProperty("catalogVersion").GetString());
         Assert.Equal(dataset.Cp.PassedDie, ft.GetProperty("unitCount").GetInt32());
         Assert.Equal(dataset.Cp.PassedDie, ft.GetProperty("cpPassedUnits").GetInt32());
         Assert.Equal(0, ft.GetProperty("escapeUnits").GetInt32());

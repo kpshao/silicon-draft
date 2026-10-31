@@ -43,4 +43,29 @@ internal static class TestItemFactory
             testLimits ?? PassFailTest,
             failSoftBin,
             passRate);
+
+    /// <summary>
+    /// Builds a Test Item the configuration defines outside a catalog. FT shares this
+    /// entry point; its custom items carry an empty Site Offset list.
+    /// </summary>
+    public static TestItem Custom(CustomTestItem item) => item.Kind switch
+    {
+        TestItemKind.Numeric => Numeric(
+            item.TestNumber,
+            item.Name,
+            item.Unit,
+            item.SpecLimits,
+            item.TestLimits,
+            item.FailSoftBin,
+            item.Distribution!,
+            item.SiteOffsets),
+        TestItemKind.Functional => Functional(
+            item.TestNumber,
+            item.Name,
+            item.FailSoftBin,
+            item.PassRate!.Value,
+            item.SpecLimits,
+            item.TestLimits),
+        _ => throw new ArgumentOutOfRangeException(nameof(item)),
+    };
 }
