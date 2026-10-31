@@ -7,7 +7,7 @@ namespace SiliconDraft.Core;
 /// </summary>
 internal static class WatCatalog
 {
-    public const string Version = "wat-catalog-v2";
+    public const string Version = "wat-catalog-v3";
 
     public static IReadOnlyList<WatTestItem> DefaultItems { get; } =
     [
@@ -16,9 +16,11 @@ internal static class WatCatalog
         Item(3002, "Vtp", "V", new Limits(-0.51, -0.39), new Limits(-0.50, -0.40),
             DistributionKind.Normal, mean: -0.45, sigma: 0.02),
         Item(3003, "IdsatN", "mA", new Limits(390, 510), new Limits(400, 500),
-            DistributionKind.Normal, mean: 450, sigma: 20),
+            DistributionKind.Lognormal, mean: 6.1092475827643655,
+            sigma: 0.044444444444444446),
         Item(3004, "IdsatP", "mA", new Limits(190, 250), new Limits(200, 240),
-            DistributionKind.Normal, mean: 220, sigma: 6.5),
+            DistributionKind.Lognormal, mean: 5.393627546352362,
+            sigma: 0.029545454545454545),
         Item(3005, "Tox", "nm", new Limits(1.9, 2.1), new Limits(1.92, 2.08),
             DistributionKind.Normal, mean: 2.0, sigma: 0.03),
         Item(3006, "Rs", "Ohm/sq", new Limits(100, 140), new Limits(105, 135),

@@ -25,7 +25,7 @@ dotnet test
 dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -o out
 ```
 
-这会写出 `out/_truth/manifest.json`、`out/LOT-0001_wafermap.csv`、`out/LOT-0001_CP.stdf`、`out/LOT-0001_FT.stdf` 和 `out/LOT-0001_WAT_long.txt`。manifest 记录 Resolved Config（包含生效的晶圆几何、CP 设置、FT 设置和 WAT sites）、seed、Dataset 身份、每个 wafer、lot 和 Dataset 的 Gross/Partial Die 计数与 Net Die，以及每个 lot 和 Dataset 的 CP 与 FT 良率和 Bin 计数。它还记录 FT catalog 版本、每个 Dataset、lot 和 wafer 的 FT Unit 与 Escape 计数，以及每个 Dataset 和 lot 的 Assembly Loss，还有 WAT catalog 版本、site 与 test item 计数，以及每个 Dataset、lot 和 wafer 的测量计数。Net Die 是通过 CP 的有效 die 数。Wafer Map CSV 列出每个导出的 die 及其 Die Index 坐标、物理中心和 valid/partial 状态。STDF V4 CP 文件包含 FAR、MIR、SDR，每个 Wafer 的 WIR/WCR，每个受测 die 一组 PIR、按 item 类型生成的 PTR 或 FTR、以及 PRR，每个 Wafer 的 WRR，随后是 TSR/HBR/SBR/PCR 汇总，最后由 MRR 收尾。STDF V4 FT 文件包含 FAR、每个 FT Unit 一条 ATR、MIR、SDR，每个 FT Unit 一组 PIR、PTR 或 FTR、以及 PRR，以及相同的 lot 汇总和 MRR；FT 是封装测试，不写 WIR/WCR/WRR。WAT TXT 文件每个 PCM Site 和 Test Item 一行。相同配置与 seed 总是产生相同的文件。
+这会写出 `out/_truth/manifest.json`、`out/LOT-0001_wafermap.csv`、`out/LOT-0001_CP.stdf`、`out/LOT-0001_FT.stdf` 和 `out/LOT-0001_WAT_long.txt`。manifest 记录 Resolved Config（包含生效的晶圆几何、CP 设置、FT 设置和 WAT sites）、seed、Dataset 身份、每个 wafer、lot 和 Dataset 的 Gross/Partial Die 计数与 Net Die，以及每个 lot 和 Dataset 的 CP 与 FT 良率和 Bin 计数。它还记录 FT catalog 版本、每个 Dataset、lot 和 wafer 的 FT Unit 与 Escape 计数，以及每个 Dataset 和 lot 的 Assembly Loss，还有 WAT catalog 版本、site 与 test item 计数，以及每个 Dataset、lot 和 wafer 的测量计数。`dataset.correlations.die` 记录每个 die 级 CP-FT 关联对的目标 r、容差、实际 r 与样本数。Net Die 是通过 CP 的有效 die 数。Wafer Map CSV 列出每个导出的 die 及其 Die Index 坐标、物理中心和 valid/partial 状态。STDF V4 CP 文件包含 FAR、MIR、SDR，每个 Wafer 的 WIR/WCR，每个受测 die 一组 PIR、按 item 类型生成的 PTR 或 FTR、以及 PRR，每个 Wafer 的 WRR，随后是 TSR/HBR/SBR/PCR 汇总，最后由 MRR 收尾。STDF V4 FT 文件包含 FAR、每个 FT Unit 一条 ATR、MIR、SDR，每个 FT Unit 一组 PIR、PTR 或 FTR、以及 PRR，以及相同的 lot 汇总和 MRR；FT 是封装测试，不写 WIR/WCR/WRR。WAT TXT 文件每个 PCM Site 和 Test Item 一行。相同配置与 seed 总是产生相同的文件。
 
 配置解析是严格的：未知属性、重复键、注释和尾随逗号都会被拒绝，每个错误都会指出出错的 JSON 路径。
 
@@ -65,7 +65,7 @@ dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -
 
 ## CP catalog 与 bins
 
-内置的完整 CP catalog v1（`cp-catalog-v3`）包含 20 个 Numeric Test Item 和 3 个 Functional Test Item。Numeric item 覆盖阈值电压（Vt、Vtp、Vtlin、Vtsat、Vfb）、驱动电流与跨导（Idsat、IdsatP、Gm）、漏电（Iddq、Leakage、Ioff）、导通与接触电阻（RdsOn、Rs、Rc）、栅氧特性（Cox、Vbd、Ssw、Dibl）、电容（Cin）和正向压降（Vf）；Functional item 为 Scan、Bist 和 Mbist。每个 item 声明单位、默认分布、spec limits、test limits 和默认失败 Soft Bin；Numeric item 还声明 8 个 Tester Site 的默认测量偏移。每个有效 Die 对每个 item 得到一个结果；Partial Die 不测试。
+内置的完整 CP catalog v1（`cp-catalog-v4`）包含 20 个 Numeric Test Item 和 3 个 Functional Test Item。Numeric item 覆盖阈值电压（Vt、Vtp、Vtlin、Vtsat、Vfb）、驱动电流与跨导（Idsat、IdsatP、Gm）、漏电（Iddq、Leakage、Ioff）、导通与接触电阻（RdsOn、Rs、Rc）、栅氧特性（Cox、Vbd、Ssw、Dibl）、电容（Cin）和正向压降（Vf）；Functional item 为 Scan、Bist 和 Mbist。每个 item 声明单位、默认分布、spec limits、test limits 和默认失败 Soft Bin；Numeric item 还声明 8 个 Tester Site 的默认测量偏移。驱动电流（Idsat、IdsatP）和漏电项使用 lognormal 默认分布，阈值电压与其他参数使用 normal；每个有效 Die 对每个 item 得到一个结果；Partial Die 不测试。
 
 - 当结果落在 test limits 之外时 Test Item 失败；spec limits 与 test limits 一起导出。两个范围不做交叉校验，因此配置可以刻意设置更宽的 test limits。
 - 第一个失败的 item 决定结果：Numeric 失败映射到 Parametric Fail Hard Bin，Functional 失败映射到 Functional Fail Hard Bin，item 的失败 Soft Bin 标识失败内容。通过的 die 得到 Pass Hard 与 Soft Bin。
@@ -125,9 +125,39 @@ STDF 的完整记录集与 multi-site 模型记录在 [ADR-0011](docs/adr/0011-f
 
 STDF FT 文件（`<LOTID>_FT.stdf`）包含 FAR、每个 FT Unit 一条 ATR、`TEST_COD` 为 `FT` 的 MIR、SDR（1 个 Tester Site）、每个 FT Unit 一组 PIR、PTR 或 FTR、以及 PRR，随后是 TSR/HBR/SBR/PCR 汇总，最后由 MRR 收尾。FT 是封装测试而不是 wafer sort，因此不写 WIR/WCR/WRR；来源 Wafer 追溯由 ATR 承载。ATR 位于 FAR 与 MIR 之间，也就是 STDF V4 期望 audit 记录的位置。PRR 携带来源 Die X/Y，并以 FT Unit id 作为 PART_ID。每条 ATR 的 CMD_LINE 以 `KEY=VALUE` 对形式携带 `UNIT_ID`（与 PRR PART_ID 一致）、`SOURCE_WAFER_ID`、`SOURCE_DIE_X`、`SOURCE_DIE_Y`、`ASSEMBLY_LOT` 和 `CP_RESULT`，因此导入后记录可以 join，Escape 也可识别。manifest 中的 FT Units、Assembly Loss 和 Escapes 与文件对账。参见 [ADR-0011](docs/adr/0011-full-stdf-and-multi-site.md)、[ADR-0010](docs/adr/0010-ft-traceability-and-stdf-export.md) 和 [`examples/ft.json`](examples/ft.json)。
 
+## Latent-factor 模型与 CP-FT 相关性
+
+每个 Numeric Test Item 的值不再独立采样，而是由共享 Latent Factor 生成：lot 级因子、wafer 级因子、每片晶圆一个 Spatial Field、每个 die 的 die 级因子，以及独立的 measurement noise。Test Item 的模型方差按五个分量分解（`lot`、`wafer`、`spatial`、`die`、`measurement`），五个分量之和必须为 1。Normal item 的均值与 sigma 在值空间；Lognormal item 的均值与 sigma 在 log 空间，因此驱动电流与漏电项默认呈现对数正态分布。lot/wafer/spatial 因子在所有 item 之间共享，因此未被显式配对的 item 在这些层级也共同变异；die 层由关联对因子和独立残差组成。
+
+可选的 `latent` 段：
+
+```json
+"latent": {
+  "variance": { "lot": 0.03, "wafer": 0.05, "spatial": 0.05, "die": 0.72, "measurement": 0.15 },
+  "spatialLoadings": [
+    { "step": "cp", "name": "Vt", "loading": 1.5 },
+    { "step": "ft", "name": "Fmax", "loading": 1.2 }
+  ],
+  "diePairs": [
+    { "cpItem": "Idsat", "ftItem": "Ioh", "targetR": 0.7, "tolerance": 0.05 },
+    { "cpItem": "Vt", "ftItem": "Fmax", "targetR": -0.25, "tolerance": 0.05 }
+  ]
+}
+```
+
+- `latent.variance` 的五个分量都是该 Test Item 模型方差的比例，必须有限、非负且和为 1。默认值为 lot 0.03、wafer 0.05、spatial 0.05、die 0.72、measurement 0.15。
+- `latent.spatialLoadings[]` 为单个 Numeric Test Item 设置 Spatial Field 载荷；`step` 为 `cp` 或 `ft`，`name` 是该 step 的 Numeric Test Item，`loading` 必须有限且非负，默认 1。载荷放大该 item 的 spatial 方差占比，其余四层按比例缩放，因此 item 的总模型方差保持为 1；同一名称出现在两个 step 时需要分别配置。重复、未知或 Functional item 会被拒绝。
+- `latent.diePairs[]` 定义 CP 与 FT 的 die 级关联对。`cpItem` 与 `ftItem` 必须是 Numeric Test Item；`targetR` 是测量值尺度上的目标 Pearson r；`tolerance` 是允许偏差，默认 0.05。
+- 目标 r 通过解析校准转化为 die 层因子相关性。Normal/Normal、Lognormal/Lognormal 与混合分布都有闭式解。由于 FT Unit 只包含 CP 通过的 die，生成器最多进行 4 轮确定性校准：用实际 FT 样本的计算结果修正 die 层相关性，直到每个关联对落入容差或达到轮次上限。目标必须能被配置的方差分量实现：共享的 lot/wafer/spatial 层决定相关性的基线，die 层决定可调范围；同一个 item 参与多个关联对时，其 die 层预算不能超过 1。非法配置以退出码 2 拒绝。
+- 省略 `diePairs` 时使用内置物理默认对：Idsat/Ioh 0.70、Vt/Fmax −0.25、Cin/Cin 0.80、Leakage/Iil 0.65、Iddq/Icc 0.60。`"diePairs": []` 关闭所有关联对。
+- manifest 的 `dataset.correlations.die` 记录每个关联对的 `cpItem`、`ftItem`、`targetR`、`tolerance`、`achievedR`、`withinTolerance` 与 `sampleCount`。`achievedR` 是在所有同时具有 CP 与 FT 结果的 FT Unit 上计算的 Pearson r；样本少于 2 时 `achievedR` 与 `withinTolerance` 为 `null`。`resolvedConfig.latent` 记录生效的方差分量、spatial loadings 与关联对。
+- 相同配置与 seed 生成相同的因子值与统计结果。CP 与 FT 使用相同的 lot/wafer/spatial 因子和关联对因子；measurement noise 与 die 残差按 step 独立，因此 CP-FT 相关性只来自共享因子。
+
+参见 [ADR-0013](docs/adr/0013-latent-factor-sampling-and-calibration.md)、[`examples/latent.json`](examples/latent.json) 与 [ADR-0002](docs/adr/0002-latent-factor-generation-model.md)。
+
 ## WAT catalog 与 TXT 导出
 
-内置的完整 WAT catalog v1（`wat-catalog-v2`）包含 12 个 Numeric Test Item：Vtn、Vtp、IdsatN、IdsatP、Tox、Rs、Rc、Vbd、IoffN、IoffP、Ssw 和 Vfb。每个 Wafer 在每个 PCM Site 都进行测量：每个 site 上每个 Test Item 一个值，从 catalog 的默认分布采样。每个值由 Dataset seed、Lot、Wafer、Site 和 Test Item 播种，因此相同配置与 seed 可复现文件。
+内置的完整 WAT catalog v1（`wat-catalog-v3`）包含 12 个 Numeric Test Item：Vtn、Vtp、IdsatN、IdsatP、Tox、Rs、Rc、Vbd、IoffN、IoffP、Ssw 和 Vfb。每个 Wafer 在每个 PCM Site 都进行测量：每个 site 上每个 Test Item 一个值，从 catalog 的默认分布采样（IdsatN/IdsatP 为 lognormal，阈值电压为 normal）。每个值由 Dataset seed、Lot、Wafer、Site 和 Test Item 播种，因此相同配置与 seed 可复现文件。
 
 - 默认布局为九个 PCM Site：晶圆中心，加上晶圆中心到边缘中点处的八个点，按 45° 递增。坐标是相对晶圆中心的毫米值。
 - `wat.sites` 替换默认布局。每个 site 需要 `id`、`xMm` 和 `yMm`；id 必须唯一，且每个 site 必须位于晶圆内。
@@ -204,7 +234,7 @@ dotnet test
 dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -o out
 ```
 
-This writes `out/_truth/manifest.json`, `out/LOT-0001_wafermap.csv`, `out/LOT-0001_CP.stdf`, `out/LOT-0001_FT.stdf`, and `out/LOT-0001_WAT_long.txt`. The manifest records the Resolved Config (including the effective wafer geometry, CP settings, FT settings, and WAT sites), the seed, the Dataset identity, Gross/Partial Die counts and Net Die per wafer, lot, and Dataset, plus CP and FT yield and Bin counts per lot and Dataset. It also records the FT catalog version, the FT Unit and Escape counts per Dataset, lot, and wafer, and the Assembly Loss per Dataset and lot, plus the WAT catalog version, site and test item counts, and measurement counts per Dataset, lot, and wafer. Net Die is the number of valid die that pass CP. The Wafer Map CSV lists every exported die with its Die Index coordinates, physical center, and valid/partial status. The STDF V4 CP file contains FAR, MIR, SDR, WIR/WCR per Wafer, one PIR, PTR or FTR depending on the item type, and PRR group per tested die, WRR per Wafer, the TSR/HBR/SBR/PCR summaries, and MRR. The STDF V4 FT file contains FAR, one ATR per FT Unit, MIR, SDR, one PIR, PTR or FTR, and PRR group per FT Unit, the same lot summaries, and MRR; FT is package test, so it has no WIR/WCR/WRR. The WAT TXT file contains one row per PCM Site and Test Item. The same configuration and seed always produce the same files.
+This writes `out/_truth/manifest.json`, `out/LOT-0001_wafermap.csv`, `out/LOT-0001_CP.stdf`, `out/LOT-0001_FT.stdf`, and `out/LOT-0001_WAT_long.txt`. The manifest records the Resolved Config (including the effective wafer geometry, CP settings, FT settings, and WAT sites), the seed, the Dataset identity, Gross/Partial Die counts and Net Die per wafer, lot, and Dataset, plus CP and FT yield and Bin counts per lot and Dataset. It also records the FT catalog version, the FT Unit and Escape counts per Dataset, lot, and wafer, and the Assembly Loss per Dataset and lot, plus the WAT catalog version, site and test item counts, and measurement counts per Dataset, lot, and wafer. `dataset.correlations.die` records each die-level CP-FT pair's target r, tolerance, achieved r, and sample count. Net Die is the number of valid die that pass CP. The Wafer Map CSV lists every exported die with its Die Index coordinates, physical center, and valid/partial status. The STDF V4 CP file contains FAR, MIR, SDR, WIR/WCR per Wafer, one PIR, PTR or FTR depending on the item type, and PRR group per tested die, WRR per Wafer, the TSR/HBR/SBR/PCR summaries, and MRR. The STDF V4 FT file contains FAR, one ATR per FT Unit, MIR, SDR, one PIR, PTR or FTR, and PRR group per FT Unit, the same lot summaries, and MRR; FT is package test, so it has no WIR/WCR/WRR. The WAT TXT file contains one row per PCM Site and Test Item. The same configuration and seed always produce the same files.
 
 Configuration parsing is strict: unknown properties, duplicate keys, comments, and trailing commas are rejected, and every error names the offending JSON path.
 
@@ -244,7 +274,7 @@ See [`examples/geometry.json`](examples/geometry.json) for a rotated, offset con
 
 ## CP catalog and bins
 
-The built-in complete CP catalog v1 (`cp-catalog-v3`) has 20 Numeric Test Items and three Functional Test Items. The Numeric items cover threshold voltage (Vt, Vtp, Vtlin, Vtsat, Vfb), drive current and transconductance (Idsat, IdsatP, Gm), leakage (Iddq, Leakage, Ioff), on-resistance and contact resistance (RdsOn, Rs, Rc), gate-oxide behavior (Cox, Vbd, Ssw, Dibl), capacitance (Cin), and forward voltage (Vf); the Functional items are Scan, Bist, and Mbist. Each item declares a unit, a default distribution, spec limits, test limits, and a default failure Soft Bin; Numeric items also declare default measurement offsets for eight Tester Sites. Every valid Die receives one result per item; Partial Die are not tested.
+The built-in complete CP catalog v1 (`cp-catalog-v4`) has 20 Numeric Test Items and three Functional Test Items. The Numeric items cover threshold voltage (Vt, Vtp, Vtlin, Vtsat, Vfb), drive current and transconductance (Idsat, IdsatP, Gm), leakage (Iddq, Leakage, Ioff), on-resistance and contact resistance (RdsOn, Rs, Rc), gate-oxide behavior (Cox, Vbd, Ssw, Dibl), capacitance (Cin), and forward voltage (Vf); the Functional items are Scan, Bist, and Mbist. Each item declares a unit, a default distribution, spec limits, test limits, and a default failure Soft Bin; Numeric items also declare default measurement offsets for eight Tester Sites. Drive-current items (Idsat, IdsatP) and leakage items default to a lognormal distribution, while threshold voltages and other parameters default to normal. Every valid Die receives one result per item; Partial Die are not tested.
 
 - A Test Item fails when its result falls outside its test limits; spec limits are exported alongside them. The two ranges are not cross-validated, so a configuration can deliberately set wider test limits.
 - The first failing item decides the outcome: a Numeric failure maps to the Parametric Fail Hard Bin, a Functional failure to the Functional Fail Hard Bin, and the item's failure Soft Bin identifies what failed. Passing die get the Pass Hard and Soft Bins.
@@ -304,9 +334,39 @@ The built-in complete FT catalog v1 (`ft-catalog-v2`) has 15 Numeric Test Items 
 
 The STDF FT file (`<LOTID>_FT.stdf`) contains FAR, one ATR per FT Unit, MIR with `TEST_COD` `FT`, SDR (one Tester Site), one PIR, PTR or FTR, and PRR group per FT Unit, the TSR/HBR/SBR/PCR summaries, and MRR. FT is package test rather than wafer sort, so it has no WIR/WCR/WRR; source Wafer traceability lives in the ATRs. The ATRs sit between FAR and MIR, where STDF V4 expects audit records. PRR carries the source Die X/Y and the FT Unit id as PART_ID. Each ATR's CMD_LINE carries `UNIT_ID` (matching the PRR PART_ID), `SOURCE_WAFER_ID`, `SOURCE_DIE_X`, `SOURCE_DIE_Y`, `ASSEMBLY_LOT`, and `CP_RESULT` as `KEY=VALUE` pairs, so records join after import and Escapes are identifiable. The manifest's FT Units, Assembly Loss, and Escapes reconcile with the file. See [ADR-0011](docs/adr/0011-full-stdf-and-multi-site.md), [ADR-0010](docs/adr/0010-ft-traceability-and-stdf-export.md), and [`examples/ft.json`](examples/ft.json).
 
+## Latent-factor model and CP-FT correlation
+
+Every Numeric Test Item value is generated from shared Latent Factors instead of being sampled independently: a lot factor, a wafer factor, one Spatial Field per wafer, a die factor per die, and independent measurement noise. Each Test Item's model variance decomposes into five components (`lot`, `wafer`, `spatial`, `die`, `measurement`) that must sum to one. Normal items carry their mean and sigma in value space; Lognormal items carry them in log space, so drive-current and leakage items are lognormal by default. The lot, wafer, and spatial factors are shared across items, so items without an explicit pair still vary together at those layers; the die layer combines pair factors with an independent residual.
+
+The optional `latent` section:
+
+```json
+"latent": {
+  "variance": { "lot": 0.03, "wafer": 0.05, "spatial": 0.05, "die": 0.72, "measurement": 0.15 },
+  "spatialLoadings": [
+    { "step": "cp", "name": "Vt", "loading": 1.5 },
+    { "step": "ft", "name": "Fmax", "loading": 1.2 }
+  ],
+  "diePairs": [
+    { "cpItem": "Idsat", "ftItem": "Ioh", "targetR": 0.7, "tolerance": 0.05 },
+    { "cpItem": "Vt", "ftItem": "Fmax", "targetR": -0.25, "tolerance": 0.05 }
+  ]
+}
+```
+
+- Every `latent.variance` component is a fraction of a Test Item's model variance; each must be finite and non-negative, and the five must sum to one. The defaults are lot 0.03, wafer 0.05, spatial 0.05, die 0.72, and measurement 0.15.
+- `latent.spatialLoadings[]` sets one Numeric Test Item's Spatial Field loading. `step` is `cp` or `ft`, `name` is a Numeric Test Item in that step, and `loading` must be finite and non-negative, defaulting to 1. The loading enlarges the item's spatial variance share and rescales the other four layers proportionally, so the item's total model variance stays one; configure the name separately in each step where it appears. Duplicate, unknown, or Functional items are rejected.
+- `latent.diePairs[]` defines die-level CP-FT pairs. `cpItem` and `ftItem` must name Numeric Test Items; `targetR` is the target Pearson r on the measurement scale; `tolerance` is the allowed deviation and defaults to 0.05.
+- Analytical calibration turns each target r into a die-layer factor correlation. Normal/Normal, Lognormal/Lognormal, and mixed pairs all have closed-form solutions. Because FT Units are the CP-passing subset, generation runs up to four deterministic calibration passes, correcting the die-layer correlations from the achieved FT-sample correlation until every pair lands inside its tolerance or the pass budget runs out. The target must be reachable with the configured variance components: the shared lot/wafer/spatial layers set the correlation floor and the die layer sets the adjustable range; an item that appears in several pairs cannot spend more than its whole die-layer budget. Invalid configurations are rejected with exit code 2.
+- When `diePairs` is omitted, the built-in physically motivated defaults apply: Idsat/Ioh 0.70, Vt/Fmax −0.25, Cin/Cin 0.80, Leakage/Iil 0.65, and Iddq/Icc 0.60. `"diePairs": []` disables every pair.
+- The manifest's `dataset.correlations.die` records each pair's `cpItem`, `ftItem`, `targetR`, `tolerance`, `achievedR`, `withinTolerance`, and `sampleCount`. `achievedR` is the Pearson r across every FT Unit that carries both a CP and an FT result; it and `withinTolerance` are `null` below two samples. `resolvedConfig.latent` records the effective variance components, spatial loadings, and pairs.
+- The same configuration and seed produce the same factor values and statistics. CP and FT reuse the same lot, wafer, and spatial factors and the same pair factors; measurement noise and die residuals are independent per step, so CP-FT correlation comes only from the shared factors.
+
+See [ADR-0013](docs/adr/0013-latent-factor-sampling-and-calibration.md), [`examples/latent.json`](examples/latent.json), and [ADR-0002](docs/adr/0002-latent-factor-generation-model.md).
+
 ## WAT catalog and TXT export
 
-The built-in complete WAT catalog v1 (`wat-catalog-v2`) has 12 Numeric Test Items: Vtn, Vtp, IdsatN, IdsatP, Tox, Rs, Rc, Vbd, IoffN, IoffP, Ssw, and Vfb. Every Wafer is measured at every PCM Site: one value per Test Item at each site, sampled from the catalog's default distribution. Each value is seeded from the Dataset seed, Lot, Wafer, Site, and Test Item, so the same configuration and seed reproduce the files.
+The built-in complete WAT catalog v1 (`wat-catalog-v3`) has 12 Numeric Test Items: Vtn, Vtp, IdsatN, IdsatP, Tox, Rs, Rc, Vbd, IoffN, IoffP, Ssw, and Vfb. Every Wafer is measured at every PCM Site: one value per Test Item at each site, sampled from the catalog's default distribution (IdsatN/IdsatP are lognormal and threshold voltages are normal). Each value is seeded from the Dataset seed, Lot, Wafer, Site, and Test Item, so the same configuration and seed reproduce the files.
 
 - The default layout is nine PCM Sites: the wafer center plus eight points halfway between the center and the wafer edge, at 45° increments. Coordinates are millimeters from the wafer center.
 - `wat.sites` replaces the default layout. Each site needs an `id`, `xMm`, and `yMm`; ids must be unique and every site must lie within the wafer.

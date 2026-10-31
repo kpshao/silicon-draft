@@ -73,7 +73,51 @@ internal sealed class ConfigDocument
 
     public WatDocument? Wat { get; init; }
 
+    public LatentDocument? Latent { get; init; }
+
     public OutputDocument? Output { get; init; }
+}
+
+internal sealed class LatentDocument
+{
+    public VarianceDocument? Variance { get; init; }
+
+    public List<SpatialLoadingDocument?>? SpatialLoadings { get; init; }
+
+    public List<DiePairDocument?>? DiePairs { get; init; }
+}
+
+internal sealed class SpatialLoadingDocument
+{
+    public string? Step { get; init; }
+
+    public string? Name { get; init; }
+
+    public double? Loading { get; init; }
+}
+
+internal sealed class VarianceDocument
+{
+    public double? Lot { get; init; }
+
+    public double? Wafer { get; init; }
+
+    public double? Spatial { get; init; }
+
+    public double? Die { get; init; }
+
+    public double? Measurement { get; init; }
+}
+
+internal sealed class DiePairDocument
+{
+    public string? CpItem { get; init; }
+
+    public string? FtItem { get; init; }
+
+    public double? TargetR { get; init; }
+
+    public double? Tolerance { get; init; }
 }
 
 internal sealed class WatDocument

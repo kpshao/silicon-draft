@@ -7,7 +7,7 @@ namespace SiliconDraft.Core;
 /// </summary>
 internal static class CpCatalog
 {
-    public const string Version = "cp-catalog-v3";
+    public const string Version = "cp-catalog-v4";
 
     public static IReadOnlyList<CpCatalogItem> DefaultItems { get; } =
     [
@@ -15,7 +15,8 @@ internal static class CpCatalog
             DistributionKind.Normal, mean: 0.45, sigma: 0.02, failSoftBin: 100,
             siteOffsets: [0, 0.0020, -0.0015, 0.0010, -0.0020, 0.0015, -0.0010, 0.0005]),
         Numeric(1002, "Idsat", "mA", new Limits(390, 510), new Limits(400, 500),
-            DistributionKind.Normal, mean: 450, sigma: 20, failSoftBin: 101,
+            DistributionKind.Lognormal, mean: 6.1092475827643655, sigma: 0.044444444444444446,
+            failSoftBin: 101,
             siteOffsets: [0, 1.0, -0.8, 0.6, -1.1, 0.9, -0.5, 0.3]),
         Numeric(1003, "Iddq", "uA", new Limits(0, 35), new Limits(0, 30),
             DistributionKind.Lognormal, mean: 2.485, sigma: 0.20, failSoftBin: 102,
@@ -33,7 +34,8 @@ internal static class CpCatalog
             DistributionKind.Normal, mean: -0.45, sigma: 0.016, failSoftBin: 106,
             siteOffsets: [0, -0.0012, 0.0009, -0.0006, 0.0012, -0.0009, 0.0006, -0.0003]),
         Numeric(1008, "IdsatP", "mA", new Limits(190, 250), new Limits(200, 240),
-            DistributionKind.Normal, mean: 220, sigma: 6.5, failSoftBin: 107,
+            DistributionKind.Lognormal, mean: 5.393627546352362, sigma: 0.029545454545454545,
+            failSoftBin: 107,
             siteOffsets: [0, -0.5, 0.4, -0.3, 0.6, -0.45, 0.3, -0.2]),
         Numeric(1009, "Vtlin", "V", new Limits(0.42, 0.58), new Limits(0.44, 0.56),
             DistributionKind.Normal, mean: 0.50, sigma: 0.02, failSoftBin: 108,

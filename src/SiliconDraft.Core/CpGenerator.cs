@@ -8,11 +8,13 @@ namespace SiliconDraft.Core;
 internal static class CpGenerator
 {
     public static IReadOnlyList<CpDieResult> Generate(
+        LatentStepSampler sampler,
         TestProgram program,
         long seed,
         string lotId,
         string waferId,
-        DieMap dieMap)
+        DieMap dieMap,
+        LatentWaferContext context)
     {
         var results = new List<CpDieResult>(dieMap.GrossDie);
         foreach (var die in dieMap.Dies)
@@ -25,8 +27,7 @@ internal static class CpGenerator
             var siteRandom = new SplitMix64(
                 DeterministicSeed.ForCpSite(seed, lotId, waferId, die.X, die.Y));
             var site = 1 + siteRandom.NextInt(program.SiteCount);
-            var random = new SplitMix64(DeterministicSeed.ForDie(seed, lotId, waferId, die.X, die.Y));
-            var tests = TestSampler.SampleAll(program.Items, ref random, site);
+            var tests = sampler.SampleAll(die, lotId, waferId, site, context);
             results.Add(CpDieResult.Create(die, site, tests, program.Bins));
         }
 

@@ -1,5 +1,5 @@
 {
-  "manifestSchemaVersion": 7,
+  "manifestSchemaVersion": 8,
   "configSchemaVersion": 1,
   "seed": 42,
   "resolvedConfig": {
@@ -101,6 +101,48 @@
       "testItems": [],
       "customTestItems": []
     },
+    "latent": {
+      "variance": {
+        "lot": 0.03,
+        "wafer": 0.05,
+        "spatial": 0.05,
+        "die": 0.72,
+        "measurement": 0.15
+      },
+      "diePairs": [
+        {
+          "cpItem": "Idsat",
+          "ftItem": "Ioh",
+          "targetR": 0.7,
+          "tolerance": 0.05
+        },
+        {
+          "cpItem": "Vt",
+          "ftItem": "Fmax",
+          "targetR": -0.25,
+          "tolerance": 0.05
+        },
+        {
+          "cpItem": "Cin",
+          "ftItem": "Cin",
+          "targetR": 0.8,
+          "tolerance": 0.05
+        },
+        {
+          "cpItem": "Leakage",
+          "ftItem": "Iil",
+          "targetR": 0.65,
+          "tolerance": 0.05
+        },
+        {
+          "cpItem": "Iddq",
+          "ftItem": "Icc",
+          "targetR": 0.6,
+          "tolerance": 0.05
+        }
+      ],
+      "spatialLoadings": []
+    },
     "output": {
       "directory": "out"
     }
@@ -110,32 +152,32 @@
     "lotCount": 1,
     "waferCount": 1,
     "grossDie": 61,
-    "netDie": 54,
+    "netDie": 59,
     "partialDie": 40,
     "partialDieRetained": 0,
     "cp": {
-      "catalogVersion": "cp-catalog-v3",
+      "catalogVersion": "cp-catalog-v4",
       "testedDie": 61,
-      "passedDie": 54,
-      "yield": 0.885246,
+      "passedDie": 59,
+      "yield": 0.967213,
       "hardBins": [
         {
           "number": 1,
           "name": "Pass",
           "pass": true,
-          "count": 54
+          "count": 59
         },
         {
           "number": 2,
           "name": "Parametric Fail",
           "pass": false,
-          "count": 6
+          "count": 2
         },
         {
           "number": 3,
           "name": "Functional Fail",
           "pass": false,
-          "count": 1
+          "count": 0
         }
       ],
       "softBins": [
@@ -143,19 +185,19 @@
           "number": 1,
           "name": "Pass",
           "pass": true,
-          "count": 54
+          "count": 59
         },
         {
           "number": 100,
           "name": "Vt",
           "pass": false,
-          "count": 0
+          "count": 1
         },
         {
           "number": 101,
           "name": "Idsat",
           "pass": false,
-          "count": 0
+          "count": 1
         },
         {
           "number": 102,
@@ -167,7 +209,7 @@
           "number": 103,
           "name": "RdsOn",
           "pass": false,
-          "count": 3
+          "count": 0
         },
         {
           "number": 104,
@@ -209,7 +251,7 @@
           "number": 110,
           "name": "Gm",
           "pass": false,
-          "count": 1
+          "count": 0
         },
         {
           "number": 111,
@@ -227,7 +269,7 @@
           "number": 113,
           "name": "Cox",
           "pass": false,
-          "count": 1
+          "count": 0
         },
         {
           "number": 114,
@@ -245,7 +287,7 @@
           "number": 116,
           "name": "Rc",
           "pass": false,
-          "count": 1
+          "count": 0
         },
         {
           "number": 117,
@@ -269,7 +311,7 @@
           "number": 200,
           "name": "Scan",
           "pass": false,
-          "count": 1
+          "count": 0
         },
         {
           "number": 201,
@@ -287,30 +329,30 @@
     },
     "ft": {
       "catalogVersion": "ft-catalog-v2",
-      "unitCount": 54,
-      "cpPassedUnits": 54,
+      "unitCount": 59,
+      "cpPassedUnits": 59,
       "escapeUnits": 0,
       "assemblyLoss": 0,
-      "passedUnits": 53,
-      "yield": 0.981481,
+      "passedUnits": 54,
+      "yield": 0.915254,
       "hardBins": [
         {
           "number": 1,
           "name": "Pass",
           "pass": true,
-          "count": 53
+          "count": 54
         },
         {
           "number": 2,
           "name": "Parametric Fail",
           "pass": false,
-          "count": 1
+          "count": 3
         },
         {
           "number": 3,
           "name": "Functional Fail",
           "pass": false,
-          "count": 0
+          "count": 2
         }
       ],
       "softBins": [
@@ -318,13 +360,13 @@
           "number": 1,
           "name": "Pass",
           "pass": true,
-          "count": 53
+          "count": 54
         },
         {
           "number": 300,
           "name": "Icc",
           "pass": false,
-          "count": 0
+          "count": 1
         },
         {
           "number": 301,
@@ -408,13 +450,13 @@
           "number": 314,
           "name": "Fmax",
           "pass": false,
-          "count": 0
+          "count": 1
         },
         {
           "number": 400,
           "name": "ScanFT",
           "pass": false,
-          "count": 0
+          "count": 1
         },
         {
           "number": 401,
@@ -426,15 +468,64 @@
           "number": 402,
           "name": "MbistFT",
           "pass": false,
-          "count": 0
+          "count": 1
         }
       ]
     },
     "wat": {
-      "catalogVersion": "wat-catalog-v2",
+      "catalogVersion": "wat-catalog-v3",
       "siteCount": 9,
       "testItemCount": 12,
       "measurementCount": 108
+    },
+    "correlations": {
+      "die": [
+        {
+          "cpItem": "Idsat",
+          "ftItem": "Ioh",
+          "targetR": 0.7,
+          "tolerance": 0.05,
+          "achievedR": 0.697477,
+          "withinTolerance": true,
+          "sampleCount": 59
+        },
+        {
+          "cpItem": "Vt",
+          "ftItem": "Fmax",
+          "targetR": -0.25,
+          "tolerance": 0.05,
+          "achievedR": -0.205176,
+          "withinTolerance": true,
+          "sampleCount": 59
+        },
+        {
+          "cpItem": "Cin",
+          "ftItem": "Cin",
+          "targetR": 0.8,
+          "tolerance": 0.05,
+          "achievedR": 0.791935,
+          "withinTolerance": true,
+          "sampleCount": 59
+        },
+        {
+          "cpItem": "Leakage",
+          "ftItem": "Iil",
+          "targetR": 0.65,
+          "tolerance": 0.05,
+          "achievedR": 0.671509,
+          "withinTolerance": true,
+          "sampleCount": 59
+        },
+        {
+          "cpItem": "Iddq",
+          "ftItem": "Icc",
+          "targetR": 0.6,
+          "tolerance": 0.05,
+          "achievedR": 0.598377,
+          "withinTolerance": true,
+          "sampleCount": 59
+        }
+      ]
     },
     "lots": [
       {
@@ -442,32 +533,32 @@
         "assemblyLot": "ALOT-LOT-0001",
         "waferCount": 1,
         "grossDie": 61,
-        "netDie": 54,
+        "netDie": 59,
         "partialDie": 40,
         "partialDieRetained": 0,
         "cp": {
-          "catalogVersion": "cp-catalog-v3",
+          "catalogVersion": "cp-catalog-v4",
           "testedDie": 61,
-          "passedDie": 54,
-          "yield": 0.885246,
+          "passedDie": 59,
+          "yield": 0.967213,
           "hardBins": [
             {
               "number": 1,
               "name": "Pass",
               "pass": true,
-              "count": 54
+              "count": 59
             },
             {
               "number": 2,
               "name": "Parametric Fail",
               "pass": false,
-              "count": 6
+              "count": 2
             },
             {
               "number": 3,
               "name": "Functional Fail",
               "pass": false,
-              "count": 1
+              "count": 0
             }
           ],
           "softBins": [
@@ -475,19 +566,19 @@
               "number": 1,
               "name": "Pass",
               "pass": true,
-              "count": 54
+              "count": 59
             },
             {
               "number": 100,
               "name": "Vt",
               "pass": false,
-              "count": 0
+              "count": 1
             },
             {
               "number": 101,
               "name": "Idsat",
               "pass": false,
-              "count": 0
+              "count": 1
             },
             {
               "number": 102,
@@ -499,7 +590,7 @@
               "number": 103,
               "name": "RdsOn",
               "pass": false,
-              "count": 3
+              "count": 0
             },
             {
               "number": 104,
@@ -541,7 +632,7 @@
               "number": 110,
               "name": "Gm",
               "pass": false,
-              "count": 1
+              "count": 0
             },
             {
               "number": 111,
@@ -559,7 +650,7 @@
               "number": 113,
               "name": "Cox",
               "pass": false,
-              "count": 1
+              "count": 0
             },
             {
               "number": 114,
@@ -577,7 +668,7 @@
               "number": 116,
               "name": "Rc",
               "pass": false,
-              "count": 1
+              "count": 0
             },
             {
               "number": 117,
@@ -601,7 +692,7 @@
               "number": 200,
               "name": "Scan",
               "pass": false,
-              "count": 1
+              "count": 0
             },
             {
               "number": 201,
@@ -619,30 +710,30 @@
         },
         "ft": {
           "catalogVersion": "ft-catalog-v2",
-          "unitCount": 54,
-          "cpPassedUnits": 54,
+          "unitCount": 59,
+          "cpPassedUnits": 59,
           "escapeUnits": 0,
           "assemblyLoss": 0,
-          "passedUnits": 53,
-          "yield": 0.981481,
+          "passedUnits": 54,
+          "yield": 0.915254,
           "hardBins": [
             {
               "number": 1,
               "name": "Pass",
               "pass": true,
-              "count": 53
+              "count": 54
             },
             {
               "number": 2,
               "name": "Parametric Fail",
               "pass": false,
-              "count": 1
+              "count": 3
             },
             {
               "number": 3,
               "name": "Functional Fail",
               "pass": false,
-              "count": 0
+              "count": 2
             }
           ],
           "softBins": [
@@ -650,13 +741,13 @@
               "number": 1,
               "name": "Pass",
               "pass": true,
-              "count": 53
+              "count": 54
             },
             {
               "number": 300,
               "name": "Icc",
               "pass": false,
-              "count": 0
+              "count": 1
             },
             {
               "number": 301,
@@ -740,13 +831,13 @@
               "number": 314,
               "name": "Fmax",
               "pass": false,
-              "count": 0
+              "count": 1
             },
             {
               "number": 400,
               "name": "ScanFT",
               "pass": false,
-              "count": 0
+              "count": 1
             },
             {
               "number": 401,
@@ -758,7 +849,7 @@
               "number": 402,
               "name": "MbistFT",
               "pass": false,
-              "count": 0
+              "count": 1
             }
           ]
         },
@@ -767,11 +858,11 @@
           {
             "waferId": "LOT-0001-W01",
             "grossDie": 61,
-            "netDie": 54,
+            "netDie": 59,
             "partialDie": 40,
             "partialDieRetained": 0,
             "watMeasurements": 108,
-            "ftUnits": 54,
+            "ftUnits": 59,
             "ftEscapeUnits": 0
           }
         ]

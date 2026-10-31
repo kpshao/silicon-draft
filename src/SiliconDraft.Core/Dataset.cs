@@ -30,6 +30,7 @@ public sealed class Dataset
             ftProgram,
             lots.SelectMany(lot => lot.FtUnits).ToArray(),
             Cp.PassedDie);
+        DieCorrelations = CorrelationSummary.Create(config, cpProgram, ftProgram, lots);
     }
 
     public ResolvedConfig Config { get; }
@@ -59,6 +60,9 @@ public sealed class Dataset
 
     /// <summary>FT outcomes and Assembly Loss for the whole Dataset.</summary>
     public FtSummary Ft { get; }
+
+    /// <summary>Achieved die-level correlation of each configured CP-FT pair.</summary>
+    public IReadOnlyList<DieCorrelationResult> DieCorrelations { get; }
 
     public int LotCount => Lots.Count;
 

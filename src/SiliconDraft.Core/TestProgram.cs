@@ -10,6 +10,22 @@ public sealed record TestProgram(
     TestBins Bins,
     int SiteCount);
 
+internal static class TestProgramLookup
+{
+    public static int IndexOf(TestProgram program, string name)
+    {
+        for (var index = 0; index < program.Items.Count; index++)
+        {
+            if (string.Equals(program.Items[index].Name, name, StringComparison.Ordinal))
+            {
+                return index;
+            }
+        }
+
+        throw new InvalidOperationException($"test item '{name}' is not in the program");
+    }
+}
+
 /// <summary>
 /// The Hard and Soft Bin numbering a Test Program applies. The first failing Test Item
 /// decides the outcome: a Numeric failure maps to the Parametric Fail Hard Bin, a

@@ -7,7 +7,7 @@ namespace SiliconDraft.Core;
 /// <summary>Writes a Dataset's ground-truth manifest and its per-lot exports.</summary>
 internal static class DatasetWriter
 {
-    public const int ManifestSchemaVersion = 7;
+    public const int ManifestSchemaVersion = 8;
     public const string TruthDirectoryName = "_truth";
     public const string ManifestFileName = "manifest.json";
 
@@ -93,6 +93,7 @@ internal static class DatasetWriter
         CpManifest Cp,
         FtManifest Ft,
         WatManifest Wat,
+        CorrelationsManifest Correlations,
         IReadOnlyList<LotManifest> Lots)
     {
         public static DatasetManifest Create(Dataset dataset)
@@ -112,9 +113,34 @@ internal static class DatasetWriter
                 CpManifest.Create(dataset.Cp, dataset.CpProgram.CatalogVersion),
                 FtManifest.Create(dataset.Ft, dataset.FtProgram.CatalogVersion),
                 WatManifest.Create(dataset),
+                CorrelationsManifest.Create(dataset.DieCorrelations),
                 lots);
         }
     }
+
+    private sealed record CorrelationsManifest(IReadOnlyList<DieCorrelationManifest> Die)
+    {
+        public static CorrelationsManifest Create(IReadOnlyList<DieCorrelationResult> die) =>
+            new(die
+                .Select(result => new DieCorrelationManifest(
+                    result.CpItem,
+                    result.FtItem,
+                    result.TargetR,
+                    result.Tolerance,
+                    result.AchievedR,
+                    result.WithinTolerance,
+                    result.SampleCount))
+                .ToArray());
+    }
+
+    private sealed record DieCorrelationManifest(
+        string CpItem,
+        string FtItem,
+        double TargetR,
+        double Tolerance,
+        double? AchievedR,
+        bool? WithinTolerance,
+        int SampleCount);
 
     private sealed record LotManifest(
         string LotId,
