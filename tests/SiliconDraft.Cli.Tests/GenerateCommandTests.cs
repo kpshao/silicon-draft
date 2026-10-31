@@ -23,10 +23,14 @@ public sealed class GenerateCommandTests
         Assert.True(File.Exists(Path.Combine(outputDirectory, "LOT-0001_CP.stdf")));
         Assert.True(File.Exists(Path.Combine(outputDirectory, "LOT-0001_FT.stdf")));
         Assert.True(File.Exists(Path.Combine(outputDirectory, "LOT-0001_WAT_long.txt")));
+        Assert.True(File.Exists(Path.Combine(outputDirectory, "csv", "LOT-0001-W01_CP.csv")));
+        Assert.True(File.Exists(Path.Combine(outputDirectory, "csv", "LOT-0001-W01_FT.csv")));
         Assert.Contains("manifest.json", stdout.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("LOT-0001_CP.stdf", stdout.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("LOT-0001_FT.stdf", stdout.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("LOT-0001_WAT_long.txt", stdout.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("CSV CP: 1 file", stdout.ToString(), StringComparison.Ordinal);
+        Assert.Contains("CSV FT: 1 file", stdout.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]
