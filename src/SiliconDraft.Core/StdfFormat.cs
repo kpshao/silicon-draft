@@ -13,8 +13,12 @@ internal static class StdfFormat
 {
     private const byte StdfVersion = 4;
 
-    /// <summary>0 declares a little-endian file; the FAR record length confirms it.</summary>
-    private const byte CpuType = 0;
+    /// <summary>
+    /// STDF CPU_TYPE 2 is IBM PC/AT-compatible, i.e. little-endian. Parser libraries
+    /// such as Semi-ATE-STDF only recognize 1 (big-endian) and 2 (little-endian); the
+    /// legacy DEC/VAX value 0 is treated as unknown endianness.
+    /// </summary>
+    private const byte CpuType = 2;
 
     /// <summary>
     /// Fixed timestamp keeps output byte-identical. Simulation Time will replace it when
@@ -170,12 +174,12 @@ internal static class StdfFormat
             writer.Write(0u); // REL_VADR
             writer.Write(0u); // REPT_CNT
             writer.Write(0u); // NUM_FAIL
-            writer.Write((short)0); // XFAIL_AD
-            writer.Write((short)0); // YFAIL_AD
-            writer.Write((short)0); // VECT_OFF
+            writer.Write(0); // XFAIL_AD: I4
+            writer.Write(0); // YFAIL_AD: I4
+            writer.Write((short)0); // VECT_OFF: I2
             writer.Write((ushort)0); // RTN_ICNT
             writer.Write((ushort)0); // PGM_ICNT
-            writer.Write((byte)0); // FAIL_PIN: empty Dn
+            writer.Write((ushort)0); // FAIL_PIN: D*n, zero bits
             WriteCn(writer, string.Empty); // VECT_NAM
             WriteCn(writer, string.Empty); // TIME_SET
             WriteCn(writer, string.Empty); // OP_CODE
@@ -184,7 +188,7 @@ internal static class StdfFormat
             WriteCn(writer, string.Empty); // PROG_TXT
             WriteCn(writer, test.Passed ? "PASS" : "FAIL"); // RSLT_TXT
             writer.Write(byte.MaxValue); // PATG_NUM: invalid
-            writer.Write((byte)0); // SPIN_MAP: empty Dn
+            writer.Write((ushort)0); // SPIN_MAP: D*n, zero bits
         });
     }
 

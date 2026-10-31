@@ -38,7 +38,7 @@ public sealed class StdfCpExportTests
 
         var records = StdfReader.Read(Assert.Single(result.CpStdfPaths));
         var index = 0;
-        Assert.Equal(new FarInfo(0, 4), StdfReader.ParseFar(records[index++]));
+        Assert.Equal(new FarInfo(2, 4), StdfReader.ParseFar(records[index++]));
 
         var mir = StdfReader.ParseMir(records[index++]);
         Assert.Equal("CP", mir.TestCode);

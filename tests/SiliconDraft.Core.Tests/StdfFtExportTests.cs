@@ -321,7 +321,7 @@ public sealed class StdfFtExportTests
     {
         var records = StdfReader.Read(path);
         var index = 0;
-        Assert.Equal(new FarInfo(0, 4), StdfReader.ParseFar(records[index++]));
+        Assert.Equal(new FarInfo(2, 4), StdfReader.ParseFar(records[index++]));
 
         var atrs = new List<AtrInfo>();
         while (records[index].Type == 0 && records[index].Sub == 20)

@@ -286,8 +286,8 @@ public static class StdfReader
         reader.ReadU4(); // REL_VADR
         reader.ReadU4(); // REPT_CNT
         reader.ReadU4(); // NUM_FAIL
-        reader.ReadI2(); // XFAIL_AD
-        reader.ReadI2(); // YFAIL_AD
+        reader.ReadI4(); // XFAIL_AD
+        reader.ReadI4(); // YFAIL_AD
         reader.ReadI2(); // VECT_OFF
         var returnIndexCount = reader.ReadU2();
         var programIndexCount = reader.ReadU2();
@@ -373,6 +373,8 @@ public static class StdfReader
 
         public short ReadI2() => BinaryPrimitives.ReadInt16LittleEndian(ReadBytes(2));
 
+        public int ReadI4() => BinaryPrimitives.ReadInt32LittleEndian(ReadBytes(4));
+
         public uint ReadU4() => BinaryPrimitives.ReadUInt32LittleEndian(ReadBytes(4));
 
         public float ReadR4() => BinaryPrimitives.ReadSingleLittleEndian(ReadBytes(4));
@@ -389,7 +391,12 @@ public static class StdfReader
             return ReadBytes(length).ToArray();
         }
 
-        public byte[] ReadDn() => ReadBn();
+        public byte[] ReadDn()
+        {
+            // D*n starts with a U2 bit count, then ceil(bits / 8) bytes.
+            var bitCount = ReadU2();
+            return ReadBytes((bitCount + 7) / 8).ToArray();
+        }
 
         public void Skip(int count) => ReadBytes(count);
 

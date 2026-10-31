@@ -12,7 +12,7 @@ CP 文件的记录顺序是 FAR、MIR、SDR，然后每个 Wafer 一组 WIR、WC
 
 ## PTR、FTR 与单位/limits
 
-STDF V4 的 FTR 没有 unit、spec limits、test limits 或 PARM_FLG 字段，只有测试编号、Tester Site、pass/fail、结果文本和 vector 字段；其起始顺序是 TEST_NUM、HEAD_NUM、SITE_NUM、TEST_FLG、OPT_FLAG。因此 Numeric Test Item 写 PTR，携带 TEST_TXT、UNITS、LO_LIMIT/HI_LIMIT 与 LO_SPEC/HI_SPEC；Functional Test Item 写 FTR，携带 TEST_TXT、SITE_NUM、TEST_FLG 与 RSLT_TXT。两者都携带 Tester Site。Functional item 的 units 和 limits 仍由 Test Program 在生成时执行，但不进入 FTR，因为标准没有可放它们的字段。PTR 的 OPT_FLAG 置保留位 1；FTR 的 OPT_FLAG 置 0xFF（所有可选 vector 数据无效，保留位 6–7 为 1），随后写 TEST_TXT 和 RSLT_TXT。
+STDF V4 的 FTR 没有 unit、spec limits、test limits 或 PARM_FLG 字段，只有测试编号、Tester Site、pass/fail、结果文本和 vector 字段；其起始顺序是 TEST_NUM、HEAD_NUM、SITE_NUM、TEST_FLG、OPT_FLAG。因此 Numeric Test Item 写 PTR，携带 TEST_TXT、UNITS、LO_LIMIT/HI_LIMIT 与 LO_SPEC/HI_SPEC；Functional Test Item 写 FTR，携带 TEST_TXT、SITE_NUM、TEST_FLG 与 RSLT_TXT。两者都携带 Tester Site。Functional item 的 units 和 limits 仍由 Test Program 在生成时执行，但不进入 FTR，因为标准没有可放它们的字段。PTR 的 OPT_FLAG 置保留位 1；FTR 的 OPT_FLAG 置 0xFF（所有可选 vector 数据无效，保留位 6–7 为 1），随后写 TEST_TXT 和 RSLT_TXT。FTR 的 XFAIL_AD/YFAIL_AD 是 I4；FAIL_PIN/SPIN_MAP 是 D*n，前导为 2 字节 bit 数。FAR 的 CPU_TYPE 写 2（IBM PC/AT 兼容的小端），因为常见解析器只把 1/2 识别为字节序，0（DEC/VAX）会被视为未知。
 
 ## Multi-site 模型
 
@@ -43,7 +43,7 @@ The `WER` named by the acceptance criteria and parent spec does not exist in STD
 
 ## PTR, FTR, units, and limits
 
-STDF V4's FTR has no unit, spec-limit, test-limit, or PARM_FLG fields; it carries a test number, Tester Site, pass/fail, result text, and vector fields, and begins TEST_NUM, HEAD_NUM, SITE_NUM, TEST_FLG, OPT_FLAG. Numeric Test Items therefore write PTRs carrying TEST_TXT, UNITS, LO_LIMIT/HI_LIMIT, and LO_SPEC/HI_SPEC; Functional Test Items write FTRs carrying TEST_TXT, SITE_NUM, TEST_FLG, and RSLT_TXT. Both carry the Tester Site. Functional units and limits are still enforced by the Test Program at generation time but do not enter the FTR because the standard has no field for them. PTRs set OPT_FLAG's reserved bit 1; FTRs set OPT_FLAG to 0xFF (all optional vector data invalid, reserved bits 6-7 set) and then write TEST_TXT and RSLT_TXT.
+STDF V4's FTR has no unit, spec-limit, test-limit, or PARM_FLG fields; it carries a test number, Tester Site, pass/fail, result text, and vector fields, and begins TEST_NUM, HEAD_NUM, SITE_NUM, TEST_FLG, OPT_FLAG. Numeric Test Items therefore write PTRs carrying TEST_TXT, UNITS, LO_LIMIT/HI_LIMIT, and LO_SPEC/HI_SPEC; Functional Test Items write FTRs carrying TEST_TXT, SITE_NUM, TEST_FLG, and RSLT_TXT. Both carry the Tester Site. Functional units and limits are still enforced by the Test Program at generation time but do not enter the FTR because the standard has no field for them. PTRs set OPT_FLAG's reserved bit 1; FTRs set OPT_FLAG to 0xFF (all optional vector data invalid, reserved bits 6-7 set) and then write TEST_TXT and RSLT_TXT. FTR's XFAIL_AD/YFAIL_AD are I4; FAIL_PIN/SPIN_MAP are D*n with a two-byte bit-count prefix. FAR's CPU_TYPE is 2 (IBM PC/AT-compatible little-endian), because common parsers only recognize 1/2 as byte order and treat 0 (DEC/VAX) as unknown.
 
 ## Multi-site model
 

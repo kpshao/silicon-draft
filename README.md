@@ -95,7 +95,7 @@ dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -
 }
 ```
 
-STDF 的完整记录集与 multi-site 模型记录在 [ADR-0011](docs/adr/0011-full-stdf-and-multi-site.md)；最小 CP 闭环的历史决策见 [ADR-0008](docs/adr/0008-minimal-stdf-cp-export.md)。STDF V4 没有 `WER` 记录，对应的 Wafer 配置记录是 WCR (2,30)。FTR 在标准中不携带 unit 和 limits，因此 Numeric item 用 PTR 携带单位与 limits，Functional item 用 FTR 携带测试名、Tester Site 与 pass/fail 结果。
+STDF 的完整记录集与 multi-site 模型记录在 [ADR-0011](docs/adr/0011-full-stdf-and-multi-site.md)；最小 CP 闭环的历史决策见 [ADR-0008](docs/adr/0008-minimal-stdf-cp-export.md)；第三方 STDF 库的 build-vs-adopt 评估见 [ADR-0012](docs/adr/0012-stdf-library-build-vs-adopt.md)。STDF V4 没有 `WER` 记录，对应的 Wafer 配置记录是 WCR (2,30)。FTR 在标准中不携带 unit 和 limits，因此 Numeric item 用 PTR 携带单位与 limits，Functional item 用 FTR 携带测试名、Tester Site 与 pass/fail 结果。
 
 ## FT 与 CP-FT 追溯
 
@@ -263,7 +263,7 @@ The built-in minimal CP catalog (`cp-catalog-v2`) has six Numeric Test Items (Vt
 }
 ```
 
-The full STDF record set and multi-site model are recorded in [ADR-0011](docs/adr/0011-full-stdf-and-multi-site.md); the minimal CP loop's historical decision is in [ADR-0008](docs/adr/0008-minimal-stdf-cp-export.md). STDF V4 has no `WER` record; the corresponding Wafer configuration record is WCR (2,30). FTR carries no unit or limit fields in the standard, so Numeric items use PTR for units and limits while Functional items use FTR for the test name, Tester Site, and pass/fail result.
+The full STDF record set and multi-site model are recorded in [ADR-0011](docs/adr/0011-full-stdf-and-multi-site.md); the minimal CP loop's historical decision is in [ADR-0008](docs/adr/0008-minimal-stdf-cp-export.md); the third-party STDF library build-vs-adopt evaluation is in [ADR-0012](docs/adr/0012-stdf-library-build-vs-adopt.md). STDF V4 has no `WER` record; the corresponding Wafer configuration record is WCR (2,30). FTR carries no unit or limit fields in the standard, so Numeric items use PTR for units and limits while Functional items use FTR for the test name, Tester Site, and pass/fail result.
 
 ## FT and CP-FT traceability
 
