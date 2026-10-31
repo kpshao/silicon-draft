@@ -1,5 +1,5 @@
 {
-  "manifestSchemaVersion": 6,
+  "manifestSchemaVersion": 7,
   "configSchemaVersion": 1,
   "seed": 42,
   "resolvedConfig": {
@@ -39,11 +39,14 @@
         "functionalFailHardBin": 3
       },
       "testItems": [],
+      "customTestItems": [],
       "siteCount": 8
     },
     "ft": {
       "assemblyLoss": 0,
-      "escapeRate": 0
+      "escapeRate": 0,
+      "testItems": [],
+      "customTestItems": []
     },
     "wat": {
       "sites": [
@@ -94,7 +97,9 @@
         }
       ],
       "template": "long",
-      "organization": "perLot"
+      "organization": "perLot",
+      "testItems": [],
+      "customTestItems": []
     },
     "output": {
       "directory": "out"
@@ -105,20 +110,20 @@
     "lotCount": 1,
     "waferCount": 1,
     "grossDie": 61,
-    "netDie": 55,
+    "netDie": 54,
     "partialDie": 40,
     "partialDieRetained": 0,
     "cp": {
-      "catalogVersion": "cp-catalog-v2",
+      "catalogVersion": "cp-catalog-v3",
       "testedDie": 61,
-      "passedDie": 55,
-      "yield": 0.901639,
+      "passedDie": 54,
+      "yield": 0.885246,
       "hardBins": [
         {
           "number": 1,
           "name": "Pass",
           "pass": true,
-          "count": 55
+          "count": 54
         },
         {
           "number": 2,
@@ -130,7 +135,7 @@
           "number": 3,
           "name": "Functional Fail",
           "pass": false,
-          "count": 0
+          "count": 1
         }
       ],
       "softBins": [
@@ -138,7 +143,7 @@
           "number": 1,
           "name": "Pass",
           "pass": true,
-          "count": 55
+          "count": 54
         },
         {
           "number": 100,
@@ -174,36 +179,126 @@
           "number": 105,
           "name": "Vf",
           "pass": false,
-          "count": 3
+          "count": 0
+        },
+        {
+          "number": 106,
+          "name": "Vtp",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 107,
+          "name": "IdsatP",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 108,
+          "name": "Vtlin",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 109,
+          "name": "Vtsat",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 110,
+          "name": "Gm",
+          "pass": false,
+          "count": 1
+        },
+        {
+          "number": 111,
+          "name": "Ioff",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 112,
+          "name": "Vbd",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 113,
+          "name": "Cox",
+          "pass": false,
+          "count": 1
+        },
+        {
+          "number": 114,
+          "name": "Cin",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 115,
+          "name": "Rs",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 116,
+          "name": "Rc",
+          "pass": false,
+          "count": 1
+        },
+        {
+          "number": 117,
+          "name": "Ssw",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 118,
+          "name": "Dibl",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 119,
+          "name": "Vfb",
+          "pass": false,
+          "count": 0
         },
         {
           "number": 200,
           "name": "Scan",
           "pass": false,
-          "count": 0
+          "count": 1
         },
         {
           "number": 201,
           "name": "Bist",
           "pass": false,
           "count": 0
+        },
+        {
+          "number": 202,
+          "name": "Mbist",
+          "pass": false,
+          "count": 0
         }
       ]
     },
     "ft": {
-      "catalogVersion": "ft-catalog-v1",
-      "unitCount": 55,
-      "cpPassedUnits": 55,
+      "catalogVersion": "ft-catalog-v2",
+      "unitCount": 54,
+      "cpPassedUnits": 54,
       "escapeUnits": 0,
       "assemblyLoss": 0,
-      "passedUnits": 54,
-      "yield": 0.981818,
+      "passedUnits": 53,
+      "yield": 0.981481,
       "hardBins": [
         {
           "number": 1,
           "name": "Pass",
           "pass": true,
-          "count": 54
+          "count": 53
         },
         {
           "number": 2,
@@ -223,7 +318,7 @@
           "number": 1,
           "name": "Pass",
           "pass": true,
-          "count": 54
+          "count": 53
         },
         {
           "number": 300,
@@ -262,6 +357,60 @@
           "count": 0
         },
         {
+          "number": 306,
+          "name": "Tf",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 307,
+          "name": "Tpd",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 308,
+          "name": "Iih",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 309,
+          "name": "Iil",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 310,
+          "name": "Vil",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 311,
+          "name": "Vih",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 312,
+          "name": "Ron",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 313,
+          "name": "Cin",
+          "pass": false,
+          "count": 0
+        },
+        {
+          "number": 314,
+          "name": "Fmax",
+          "pass": false,
+          "count": 0
+        },
+        {
           "number": 400,
           "name": "ScanFT",
           "pass": false,
@@ -272,14 +421,20 @@
           "name": "BistFT",
           "pass": false,
           "count": 0
+        },
+        {
+          "number": 402,
+          "name": "MbistFT",
+          "pass": false,
+          "count": 0
         }
       ]
     },
     "wat": {
-      "catalogVersion": "wat-catalog-v1",
+      "catalogVersion": "wat-catalog-v2",
       "siteCount": 9,
-      "testItemCount": 8,
-      "measurementCount": 72
+      "testItemCount": 12,
+      "measurementCount": 108
     },
     "lots": [
       {
@@ -287,20 +442,20 @@
         "assemblyLot": "ALOT-LOT-0001",
         "waferCount": 1,
         "grossDie": 61,
-        "netDie": 55,
+        "netDie": 54,
         "partialDie": 40,
         "partialDieRetained": 0,
         "cp": {
-          "catalogVersion": "cp-catalog-v2",
+          "catalogVersion": "cp-catalog-v3",
           "testedDie": 61,
-          "passedDie": 55,
-          "yield": 0.901639,
+          "passedDie": 54,
+          "yield": 0.885246,
           "hardBins": [
             {
               "number": 1,
               "name": "Pass",
               "pass": true,
-              "count": 55
+              "count": 54
             },
             {
               "number": 2,
@@ -312,7 +467,7 @@
               "number": 3,
               "name": "Functional Fail",
               "pass": false,
-              "count": 0
+              "count": 1
             }
           ],
           "softBins": [
@@ -320,7 +475,7 @@
               "number": 1,
               "name": "Pass",
               "pass": true,
-              "count": 55
+              "count": 54
             },
             {
               "number": 100,
@@ -356,36 +511,126 @@
               "number": 105,
               "name": "Vf",
               "pass": false,
-              "count": 3
+              "count": 0
+            },
+            {
+              "number": 106,
+              "name": "Vtp",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 107,
+              "name": "IdsatP",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 108,
+              "name": "Vtlin",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 109,
+              "name": "Vtsat",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 110,
+              "name": "Gm",
+              "pass": false,
+              "count": 1
+            },
+            {
+              "number": 111,
+              "name": "Ioff",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 112,
+              "name": "Vbd",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 113,
+              "name": "Cox",
+              "pass": false,
+              "count": 1
+            },
+            {
+              "number": 114,
+              "name": "Cin",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 115,
+              "name": "Rs",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 116,
+              "name": "Rc",
+              "pass": false,
+              "count": 1
+            },
+            {
+              "number": 117,
+              "name": "Ssw",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 118,
+              "name": "Dibl",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 119,
+              "name": "Vfb",
+              "pass": false,
+              "count": 0
             },
             {
               "number": 200,
               "name": "Scan",
               "pass": false,
-              "count": 0
+              "count": 1
             },
             {
               "number": 201,
               "name": "Bist",
               "pass": false,
               "count": 0
+            },
+            {
+              "number": 202,
+              "name": "Mbist",
+              "pass": false,
+              "count": 0
             }
           ]
         },
         "ft": {
-          "catalogVersion": "ft-catalog-v1",
-          "unitCount": 55,
-          "cpPassedUnits": 55,
+          "catalogVersion": "ft-catalog-v2",
+          "unitCount": 54,
+          "cpPassedUnits": 54,
           "escapeUnits": 0,
           "assemblyLoss": 0,
-          "passedUnits": 54,
-          "yield": 0.981818,
+          "passedUnits": 53,
+          "yield": 0.981481,
           "hardBins": [
             {
               "number": 1,
               "name": "Pass",
               "pass": true,
-              "count": 54
+              "count": 53
             },
             {
               "number": 2,
@@ -405,7 +650,7 @@
               "number": 1,
               "name": "Pass",
               "pass": true,
-              "count": 54
+              "count": 53
             },
             {
               "number": 300,
@@ -444,6 +689,60 @@
               "count": 0
             },
             {
+              "number": 306,
+              "name": "Tf",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 307,
+              "name": "Tpd",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 308,
+              "name": "Iih",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 309,
+              "name": "Iil",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 310,
+              "name": "Vil",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 311,
+              "name": "Vih",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 312,
+              "name": "Ron",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 313,
+              "name": "Cin",
+              "pass": false,
+              "count": 0
+            },
+            {
+              "number": 314,
+              "name": "Fmax",
+              "pass": false,
+              "count": 0
+            },
+            {
               "number": 400,
               "name": "ScanFT",
               "pass": false,
@@ -454,19 +753,25 @@
               "name": "BistFT",
               "pass": false,
               "count": 0
+            },
+            {
+              "number": 402,
+              "name": "MbistFT",
+              "pass": false,
+              "count": 0
             }
           ]
         },
-        "watMeasurements": 72,
+        "watMeasurements": 108,
         "wafers": [
           {
             "waferId": "LOT-0001-W01",
             "grossDie": 61,
-            "netDie": 55,
+            "netDie": 54,
             "partialDie": 40,
             "partialDieRetained": 0,
-            "watMeasurements": 72,
-            "ftUnits": 55,
+            "watMeasurements": 108,
+            "ftUnits": 54,
             "ftEscapeUnits": 0
           }
         ]

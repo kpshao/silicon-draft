@@ -83,6 +83,23 @@ internal sealed class WatDocument
     public string? Template { get; init; }
 
     public string? Organization { get; init; }
+
+    public List<WatTestItemDocument>? TestItems { get; init; }
+}
+
+internal sealed class WatTestItemDocument
+{
+    public string? Name { get; init; }
+
+    public int? TestNumber { get; init; }
+
+    public string? Unit { get; init; }
+
+    public LimitsDocument? SpecLimits { get; init; }
+
+    public LimitsDocument? TestLimits { get; init; }
+
+    public DistributionDocument? Distribution { get; init; }
 }
 
 internal sealed class PcmSiteDocument
@@ -118,6 +135,12 @@ internal sealed class CpTestItemDocument
 {
     public string? Name { get; init; }
 
+    public int? TestNumber { get; init; }
+
+    public string? Unit { get; init; }
+
+    public string? Type { get; init; }
+
     public LimitsDocument? SpecLimits { get; init; }
 
     public LimitsDocument? TestLimits { get; init; }
@@ -125,6 +148,10 @@ internal sealed class CpTestItemDocument
     public int? FailSoftBin { get; init; }
 
     public List<double?>? SiteOffsets { get; init; }
+
+    public DistributionDocument? Distribution { get; init; }
+
+    public double? PassRate { get; init; }
 }
 
 internal sealed class FtDocument
@@ -132,6 +159,38 @@ internal sealed class FtDocument
     public int? AssemblyLoss { get; init; }
 
     public double? EscapeRate { get; init; }
+
+    public List<FtTestItemDocument>? TestItems { get; init; }
+}
+
+internal sealed class FtTestItemDocument
+{
+    public string? Name { get; init; }
+
+    public int? TestNumber { get; init; }
+
+    public string? Unit { get; init; }
+
+    public string? Type { get; init; }
+
+    public LimitsDocument? SpecLimits { get; init; }
+
+    public LimitsDocument? TestLimits { get; init; }
+
+    public int? FailSoftBin { get; init; }
+
+    public DistributionDocument? Distribution { get; init; }
+
+    public double? PassRate { get; init; }
+}
+
+internal sealed class DistributionDocument
+{
+    public string? Kind { get; init; }
+
+    public double? Mean { get; init; }
+
+    public double? Sigma { get; init; }
 }
 
 internal sealed class LimitsDocument

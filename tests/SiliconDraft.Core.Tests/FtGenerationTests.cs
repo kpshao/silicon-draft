@@ -41,7 +41,7 @@ public sealed class FtGenerationTests
         var dataset = Generate();
 
         var program = dataset.FtProgram;
-        Assert.Equal("ft-catalog-v1", program.CatalogVersion);
+        Assert.Equal("ft-catalog-v2", program.CatalogVersion);
         Assert.Contains(program.Items, item => item is NumericTestItem);
         Assert.Contains(program.Items, item => item is FunctionalTestItem);
         Assert.All(program.Items, item =>

@@ -96,6 +96,10 @@ _Avoid_: FT test list
 内置的 WAT Test Item 集合，包含其单位、默认分布以及 spec 与 test limits；由于导出数据会记录产生它的定义，因此带版本。
 _Avoid_: WAT test list
 
+**Custom Test Item（自定义测试项）**：
+配置在 catalog 之外定义的 Test Item，包含完整定义（test number、类型、单位、limits、分布或 pass rate、失败 Soft Bin）；其定义记录在 Resolved Config 中。
+_Avoid_: Extended item
+
 **Numeric Test Item（数值型测试项）**：
 产生测量值的 test item。
 _Avoid_: Parametric test
@@ -315,6 +319,10 @@ _Avoid_: FT test list
 **WAT Catalog**:
 The built-in set of WAT Test Items with their units, default distributions, and spec and test limits; versioned because exported data records which definitions produced it.
 _Avoid_: WAT test list
+
+**Custom Test Item**:
+A Test Item the configuration defines beyond a catalog, with its complete definition (test number, kind, unit, limits, distribution or pass rate, and failure Soft Bin); the definition is recorded in the Resolved Config.
+_Avoid_: Extended item
 
 **Numeric Test Item**:
 A test item that yields a measured value.

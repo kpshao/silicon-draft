@@ -129,7 +129,7 @@ public sealed class CpConfigValidationTests
                   "name": "Vt",
                   "specLimits": { "low": 0.41, "high": 0.49 },
                   "testLimits": { "low": 0.4, "high": 0.5 },
-                  "failSoftBin": 110
+                  "failSoftBin": 130
                 }
               ]
             }
@@ -147,7 +147,7 @@ public sealed class CpConfigValidationTests
         Assert.Equal("Vt", item.Name);
         Assert.Equal(new Limits(0.41, 0.49), item.SpecLimits);
         Assert.Equal(new Limits(0.4, 0.5), item.TestLimits);
-        Assert.Equal(110, item.FailSoftBin);
+        Assert.Equal(130, item.FailSoftBin);
     }
 
     [Theory]
@@ -167,10 +167,6 @@ public sealed class CpConfigValidationTests
         """{ "testItems": [ { "name": "Vt", "failSoftBin": 0 } ] }""",
         "cp.testItems[0].failSoftBin",
         "between 1 and 65535")]
-    [InlineData(
-        """{ "testItems": [ { "name": "NotAnItem", "failSoftBin": 120 } ] }""",
-        "cp.testItems[0].name",
-        "unknown")]
     [InlineData(
         """
         { "testItems": [

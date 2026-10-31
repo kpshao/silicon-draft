@@ -16,16 +16,24 @@ public sealed record CpConfig
     public const int MaxSiteCount = 254;
 
     internal CpConfig(
-        TestBins bins, IReadOnlyList<CpTestItemOverride> testItems, int siteCount)
+        TestBins bins,
+        IReadOnlyList<CpTestItemOverride> testItems,
+        IReadOnlyList<CustomTestItem> customTestItems,
+        int siteCount)
     {
         Bins = bins;
         TestItems = testItems;
+        CustomTestItems = customTestItems;
         SiteCount = siteCount;
     }
 
     public TestBins Bins { get; }
 
+    /// <summary>Overrides applied to catalog Test Items, in configuration order.</summary>
     public IReadOnlyList<CpTestItemOverride> TestItems { get; }
+
+    /// <summary>Test Items the configuration adds beyond the catalog.</summary>
+    public IReadOnlyList<CustomTestItem> CustomTestItems { get; }
 
     /// <summary>Number of parallel Tester Sites the CP step runs; 8 by default.</summary>
     public int SiteCount { get; }

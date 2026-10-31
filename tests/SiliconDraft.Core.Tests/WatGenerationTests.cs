@@ -11,7 +11,7 @@ public sealed class WatGenerationTests
             ThreeSites,
             lotsJson: """[ { "id": "LOT-0001", "waferCount": 2 } ]""");
 
-        Assert.Equal("wat-catalog-v1", dataset.WatProgram.CatalogVersion);
+        Assert.Equal("wat-catalog-v2", dataset.WatProgram.CatalogVersion);
         var items = dataset.WatProgram.Items;
         Assert.NotEmpty(items);
         Assert.All(items, item =>

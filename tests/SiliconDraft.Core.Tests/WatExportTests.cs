@@ -38,7 +38,7 @@ public sealed class WatExportTests
         var result = new GenerationPipeline().Export(dataset, outputDirectory);
         var lines = File.ReadAllLines(Assert.Single(result.WatPaths));
 
-        Assert.Equal("# catalogVersion=wat-catalog-v1", lines[0]);
+        Assert.Equal("# catalogVersion=wat-catalog-v2", lines[0]);
         Assert.Equal(
             "lotId\twaferId\tsite\tsiteXmm\tsiteYmm\ttestItem\ttestNumber\tvalue\tunit" +
             "\tlowSpec\thighSpec\tlowTest\thighTest",
@@ -59,7 +59,7 @@ public sealed class WatExportTests
             Assert.Equal(measurement.Site.YMm, Parse(rows[index][4]), 6);
             Assert.Equal(item.Name, rows[index][5]);
             Assert.Equal(item.TestNumber, int.Parse(rows[index][6], CultureInfo.InvariantCulture));
-            Assert.Equal(measurement.Value, Parse(rows[index][7]), 5);
+            Assert.Equal(Format(measurement.Value), rows[index][7]);
             Assert.Equal(item.Unit, rows[index][8]);
             Assert.Equal(item.SpecLimits.Low, Parse(rows[index][9]), 6);
             Assert.Equal(item.SpecLimits.High, Parse(rows[index][10]), 6);
@@ -89,7 +89,7 @@ public sealed class WatExportTests
         var lines = File.ReadAllLines(Assert.Single(result.WatPaths));
         var items = dataset.WatProgram.Items;
 
-        Assert.Equal("# catalogVersion=wat-catalog-v1", lines[0]);
+        Assert.Equal("# catalogVersion=wat-catalog-v2", lines[0]);
         Assert.Equal(
             "# testItem\ttestNumber\tunit\tlowSpec\thighSpec\tlowTest\thighTest", lines[1]);
         for (var index = 0; index < items.Count; index++)
@@ -131,7 +131,7 @@ public sealed class WatExportTests
                 {
                     var measurement = wafer.WatResults.Single(
                         measured => measured.Site == site && measured.Item == items[itemIndex]);
-                    Assert.Equal(measurement.Value, Parse(row[5 + itemIndex]), 5);
+                    Assert.Equal(Format(measurement.Value), row[5 + itemIndex]);
                 }
             }
         }
