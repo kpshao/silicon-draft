@@ -32,7 +32,7 @@ internal static class FtCatalog
     /// one pass Bin and one failure taxonomy; only the failure Soft Bins are FT-specific.
     /// </summary>
     public static TestProgram CreateProgram(TestBins bins) =>
-        new(Version, DefaultItems, bins);
+        new(Version, DefaultItems, bins, SiteCount: 1);
 
     private static TestItem Numeric(
         int testNumber,

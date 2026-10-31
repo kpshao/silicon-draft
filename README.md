@@ -25,7 +25,7 @@ dotnet test
 dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -o out
 ```
 
-这会写出 `out/_truth/manifest.json`、`out/LOT-0001_wafermap.csv`、`out/LOT-0001_CP.stdf`、`out/LOT-0001_FT.stdf` 和 `out/LOT-0001_WAT_long.txt`。manifest 记录 Resolved Config（包含生效的晶圆几何、CP 设置、FT 设置和 WAT sites）、seed、Dataset 身份、每个 wafer、lot 和 Dataset 的 Gross/Partial Die 计数与 Net Die，以及每个 lot 和 Dataset 的 CP 与 FT 良率和 Bin 计数。它还记录 FT catalog 版本、每个 Dataset、lot 和 wafer 的 FT Unit 与 Escape 计数，以及每个 Dataset 和 lot 的 Assembly Loss，还有 WAT catalog 版本、site 与 test item 计数，以及每个 Dataset、lot 和 wafer 的测量计数。Net Die 是通过 CP 的有效 die 数。Wafer Map CSV 列出每个导出的 die 及其 Die Index 坐标、物理中心和 valid/partial 状态。STDF V4 CP 文件包含 FAR、MIR、每个受测 die 一组 PIR/PTR/PRR，以及 MRR。STDF V4 FT 文件包含 FAR、每个 FT Unit 一条 ATR、MIR、每个 FT Unit 一组 PIR/PTR/PRR，以及 MRR。WAT TXT 文件每个 PCM Site 和 Test Item 一行。相同配置与 seed 总是产生相同的文件。
+这会写出 `out/_truth/manifest.json`、`out/LOT-0001_wafermap.csv`、`out/LOT-0001_CP.stdf`、`out/LOT-0001_FT.stdf` 和 `out/LOT-0001_WAT_long.txt`。manifest 记录 Resolved Config（包含生效的晶圆几何、CP 设置、FT 设置和 WAT sites）、seed、Dataset 身份、每个 wafer、lot 和 Dataset 的 Gross/Partial Die 计数与 Net Die，以及每个 lot 和 Dataset 的 CP 与 FT 良率和 Bin 计数。它还记录 FT catalog 版本、每个 Dataset、lot 和 wafer 的 FT Unit 与 Escape 计数，以及每个 Dataset 和 lot 的 Assembly Loss，还有 WAT catalog 版本、site 与 test item 计数，以及每个 Dataset、lot 和 wafer 的测量计数。Net Die 是通过 CP 的有效 die 数。Wafer Map CSV 列出每个导出的 die 及其 Die Index 坐标、物理中心和 valid/partial 状态。STDF V4 CP 文件包含 FAR、MIR、SDR，每个 Wafer 的 WIR/WCR，每个受测 die 一组 PIR、按 item 类型生成的 PTR 或 FTR、以及 PRR，每个 Wafer 的 WRR，随后是 TSR/HBR/SBR/PCR 汇总，最后由 MRR 收尾。STDF V4 FT 文件包含 FAR、每个 FT Unit 一条 ATR、MIR、SDR，每个 FT Unit 一组 PIR、PTR 或 FTR、以及 PRR，以及相同的 lot 汇总和 MRR；FT 是封装测试，不写 WIR/WCR/WRR。WAT TXT 文件每个 PCM Site 和 Test Item 一行。相同配置与 seed 总是产生相同的文件。
 
 配置解析是严格的：未知属性、重复键、注释和尾随逗号都会被拒绝，每个错误都会指出出错的 JSON 路径。
 
@@ -65,15 +65,18 @@ dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -
 
 ## CP catalog 与 bins
 
-内置的最小 CP catalog（`cp-catalog-v1`）包含六个 Numeric Test Item（Vt、Idsat、Iddq、RdsOn、Leakage、Vf）和两个 Functional Test Item（Scan、Bist）。每个 item 声明单位、默认分布、spec limits、test limits 和默认失败 Soft Bin。每个有效 Die 对每个 item 得到一个结果；Partial Die 不测试。
+内置的最小 CP catalog（`cp-catalog-v2`）包含六个 Numeric Test Item（Vt、Idsat、Iddq、RdsOn、Leakage、Vf）和两个 Functional Test Item（Scan、Bist）。每个 item 声明单位、默认分布、spec limits、test limits 和默认失败 Soft Bin；Numeric item 还声明 8 个 Tester Site 的默认测量偏移。每个有效 Die 对每个 item 得到一个结果；Partial Die 不测试。
 
 - 当结果落在 test limits 之外时 Test Item 失败；spec limits 与 test limits 一起导出。两个范围不做交叉校验，因此配置可以刻意设置更宽的 test limits。
 - 第一个失败的 item 决定结果：Numeric 失败映射到 Parametric Fail Hard Bin，Functional 失败映射到 Functional Fail Hard Bin，item 的失败 Soft Bin 标识失败内容。通过的 die 得到 Pass Hard 与 Soft Bin。
-- 可选的 `cp` 段覆盖 limits 和 Bin 编号。未知 item、非有限或倒置的 limits、越界的 Bin 编号，以及重复的 Soft Bin 都会以退出码 2 拒绝。
-- manifest 记录 catalog 版本、良率，以及每个 Dataset 和 Lot 的 Hard/Soft Bin 计数；这些计数与 STDF 文件中的 PRR 记录对账。
+- CP 默认在 8 个 Tester Site 上并行测试。`cp.siteCount` 可配置为 1–254；每个 Die 的 Tester Site 由 seed 与 Die 身份确定性派生，因此与执行顺序无关。
+- Numeric Test Item 支持 per-item site offset：`cp.testItems[].siteOffsets` 必须为每个 Tester Site 提供一个有限的加性偏移，单位与 item 相同。未配置时使用 catalog 的默认偏移模式，并按 `siteCount` 循环展开。Functional item 不接受 site offsets。
+- 可选的 `cp` 段覆盖 limits、Bin 编号和 site 设置。未知 item、非有限或倒置的 limits、越界的 Bin 编号、重复的 Soft Bin，以及长度与 `siteCount` 不符的 offsets 都会以退出码 2 拒绝。
+- manifest 记录 catalog 版本、良率，以及每个 Dataset 和 Lot 的 Hard/Soft Bin 计数；这些计数与 STDF 文件中的 PRR 记录对账。STDF 的 SDR、PCR、HBR、SBR 和 TSR 按 Tester Site 给出，因此导入后可以直接做 site-to-site 分析。WIR/WCR/WRR 只出现在 CP 文件。
 
 ```json
 "cp": {
+  "siteCount": 8,
   "bins": {
     "passHardBin": 1,
     "passSoftBin": 1,
@@ -85,13 +88,14 @@ dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -
       "name": "Vt",
       "specLimits": { "low": 0.39, "high": 0.51 },
       "testLimits": { "low": 0.4, "high": 0.5 },
-      "failSoftBin": 100
+      "failSoftBin": 100,
+      "siteOffsets": [0, 0.002, -0.0015, 0.001, -0.002, 0.0015, -0.001, 0.0005]
     }
   ]
 }
 ```
 
-STDF 设计记录在 [ADR-0008](docs/adr/0008-minimal-stdf-cp-export.md)。
+STDF 的完整记录集与 multi-site 模型记录在 [ADR-0011](docs/adr/0011-full-stdf-and-multi-site.md)；最小 CP 闭环的历史决策见 [ADR-0008](docs/adr/0008-minimal-stdf-cp-export.md)；第三方 STDF 库的 build-vs-adopt 评估见 [ADR-0012](docs/adr/0012-stdf-library-build-vs-adopt.md)。STDF V4 没有 `WER` 记录，对应的 Wafer 配置记录是 WCR (2,30)。FTR 在标准中不携带 unit 和 limits，因此 Numeric item 用 PTR 携带单位与 limits，Functional item 用 FTR 携带测试名、Tester Site 与 pass/fail 结果。
 
 ## FT 与 CP-FT 追溯
 
@@ -109,7 +113,7 @@ STDF 设计记录在 [ADR-0008](docs/adr/0008-minimal-stdf-cp-export.md)。
 }
 ```
 
-STDF FT 文件（`<LOTID>_FT.stdf`）包含 FAR、每个 FT Unit 一条 ATR、`TEST_COD` 为 `FT` 的 MIR、每个 FT Unit 一组 PIR/PTR/PRR，以及 MRR。ATR 位于 FAR 与 MIR 之间，也就是 STDF V4 期望 audit 记录的位置。PRR 携带来源 Die X/Y，并以 FT Unit id 作为 PART_ID。每条 ATR 的 CMD_LINE 以 `KEY=VALUE` 对形式携带 `UNIT_ID`（与 PRR PART_ID 一致）、`SOURCE_WAFER_ID`、`SOURCE_DIE_X`、`SOURCE_DIE_Y`、`ASSEMBLY_LOT` 和 `CP_RESULT`，因此导入后记录可以 join，Escape 也可识别。manifest 中的 FT Units、Assembly Loss 和 Escapes 与文件对账。参见 [ADR-0010](docs/adr/0010-ft-traceability-and-stdf-export.md) 和 [`examples/ft.json`](examples/ft.json)。
+STDF FT 文件（`<LOTID>_FT.stdf`）包含 FAR、每个 FT Unit 一条 ATR、`TEST_COD` 为 `FT` 的 MIR、SDR（1 个 Tester Site）、每个 FT Unit 一组 PIR、PTR 或 FTR、以及 PRR，随后是 TSR/HBR/SBR/PCR 汇总，最后由 MRR 收尾。FT 是封装测试而不是 wafer sort，因此不写 WIR/WCR/WRR；来源 Wafer 追溯由 ATR 承载。ATR 位于 FAR 与 MIR 之间，也就是 STDF V4 期望 audit 记录的位置。PRR 携带来源 Die X/Y，并以 FT Unit id 作为 PART_ID。每条 ATR 的 CMD_LINE 以 `KEY=VALUE` 对形式携带 `UNIT_ID`（与 PRR PART_ID 一致）、`SOURCE_WAFER_ID`、`SOURCE_DIE_X`、`SOURCE_DIE_Y`、`ASSEMBLY_LOT` 和 `CP_RESULT`，因此导入后记录可以 join，Escape 也可识别。manifest 中的 FT Units、Assembly Loss 和 Escapes 与文件对账。参见 [ADR-0011](docs/adr/0011-full-stdf-and-multi-site.md)、[ADR-0010](docs/adr/0010-ft-traceability-and-stdf-export.md) 和 [`examples/ft.json`](examples/ft.json)。
 
 ## WAT catalog 与 TXT 导出
 
@@ -189,7 +193,7 @@ dotnet test
 dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -o out
 ```
 
-This writes `out/_truth/manifest.json`, `out/LOT-0001_wafermap.csv`, `out/LOT-0001_CP.stdf`, `out/LOT-0001_FT.stdf`, and `out/LOT-0001_WAT_long.txt`. The manifest records the Resolved Config (including the effective wafer geometry, CP settings, FT settings, and WAT sites), the seed, the Dataset identity, Gross/Partial Die counts and Net Die per wafer, lot, and Dataset, plus CP and FT yield and Bin counts per lot and Dataset. It also records the FT catalog version, the FT Unit and Escape counts per Dataset, lot, and wafer, and the Assembly Loss per Dataset and lot, plus the WAT catalog version, site and test item counts, and measurement counts per Dataset, lot, and wafer. Net Die is the number of valid die that pass CP. The Wafer Map CSV lists every exported die with its Die Index coordinates, physical center, and valid/partial status. The STDF V4 CP file contains FAR, MIR, one PIR/PTR/PRR group per tested die, and MRR. The STDF V4 FT file contains FAR, one ATR per FT Unit, MIR, one PIR/PTR/PRR group per FT Unit, and MRR. The WAT TXT file contains one row per PCM Site and Test Item. The same configuration and seed always produce the same files.
+This writes `out/_truth/manifest.json`, `out/LOT-0001_wafermap.csv`, `out/LOT-0001_CP.stdf`, `out/LOT-0001_FT.stdf`, and `out/LOT-0001_WAT_long.txt`. The manifest records the Resolved Config (including the effective wafer geometry, CP settings, FT settings, and WAT sites), the seed, the Dataset identity, Gross/Partial Die counts and Net Die per wafer, lot, and Dataset, plus CP and FT yield and Bin counts per lot and Dataset. It also records the FT catalog version, the FT Unit and Escape counts per Dataset, lot, and wafer, and the Assembly Loss per Dataset and lot, plus the WAT catalog version, site and test item counts, and measurement counts per Dataset, lot, and wafer. Net Die is the number of valid die that pass CP. The Wafer Map CSV lists every exported die with its Die Index coordinates, physical center, and valid/partial status. The STDF V4 CP file contains FAR, MIR, SDR, WIR/WCR per Wafer, one PIR, PTR or FTR depending on the item type, and PRR group per tested die, WRR per Wafer, the TSR/HBR/SBR/PCR summaries, and MRR. The STDF V4 FT file contains FAR, one ATR per FT Unit, MIR, SDR, one PIR, PTR or FTR, and PRR group per FT Unit, the same lot summaries, and MRR; FT is package test, so it has no WIR/WCR/WRR. The WAT TXT file contains one row per PCM Site and Test Item. The same configuration and seed always produce the same files.
 
 Configuration parsing is strict: unknown properties, duplicate keys, comments, and trailing commas are rejected, and every error names the offending JSON path.
 
@@ -229,15 +233,18 @@ See [`examples/geometry.json`](examples/geometry.json) for a rotated, offset con
 
 ## CP catalog and bins
 
-The built-in minimal CP catalog (`cp-catalog-v1`) has six Numeric Test Items (Vt, Idsat, Iddq, RdsOn, Leakage, Vf) and two Functional Test Items (Scan, Bist). Each item declares a unit, a default distribution, spec limits, test limits, and a default failure Soft Bin. Every valid Die receives one result per item; Partial Die are not tested.
+The built-in minimal CP catalog (`cp-catalog-v2`) has six Numeric Test Items (Vt, Idsat, Iddq, RdsOn, Leakage, Vf) and two Functional Test Items (Scan, Bist). Each item declares a unit, a default distribution, spec limits, test limits, and a default failure Soft Bin; Numeric items also declare default measurement offsets for eight Tester Sites. Every valid Die receives one result per item; Partial Die are not tested.
 
 - A Test Item fails when its result falls outside its test limits; spec limits are exported alongside them. The two ranges are not cross-validated, so a configuration can deliberately set wider test limits.
 - The first failing item decides the outcome: a Numeric failure maps to the Parametric Fail Hard Bin, a Functional failure to the Functional Fail Hard Bin, and the item's failure Soft Bin identifies what failed. Passing die get the Pass Hard and Soft Bins.
-- The optional `cp` section overrides limits and Bin numbers. Unknown items, non-finite or inverted limits, out-of-range Bin numbers, and duplicate Soft Bins are rejected with exit code 2.
-- The manifest records the catalog version, yield, and Hard/Soft Bin counts per Dataset and Lot; those counts reconcile with the PRR records in the STDF file.
+- CP tests on eight Tester Sites in parallel by default. `cp.siteCount` is configurable from 1 to 254; each Die's Tester Site is derived deterministically from the seed and the Die identity, so it is independent of execution order.
+- Numeric Test Items support a per-item site offset: `cp.testItems[].siteOffsets` must supply one finite additive offset per Tester Site, in the item's unit. When omitted, the catalog's default offset pattern is expanded cyclically to the configured `siteCount`. Functional items reject site offsets.
+- The optional `cp` section overrides limits, Bin numbers, and site settings. Unknown items, non-finite or inverted limits, out-of-range Bin numbers, duplicate Soft Bins, and offsets whose length differs from `siteCount` are rejected with exit code 2.
+- The manifest records the catalog version, yield, and Hard/Soft Bin counts per Dataset and Lot; those counts reconcile with the PRR records in the STDF file. The STDF SDR, PCR, HBR, SBR, and TSR records are reported per Tester Site, so site-to-site analysis works directly after import. WIR/WCR/WRR appear only in the CP file.
 
 ```json
 "cp": {
+  "siteCount": 8,
   "bins": {
     "passHardBin": 1,
     "passSoftBin": 1,
@@ -249,13 +256,14 @@ The built-in minimal CP catalog (`cp-catalog-v1`) has six Numeric Test Items (Vt
       "name": "Vt",
       "specLimits": { "low": 0.39, "high": 0.51 },
       "testLimits": { "low": 0.4, "high": 0.5 },
-      "failSoftBin": 100
+      "failSoftBin": 100,
+      "siteOffsets": [0, 0.002, -0.0015, 0.001, -0.002, 0.0015, -0.001, 0.0005]
     }
   ]
 }
 ```
 
-The STDF design is recorded in [ADR-0008](docs/adr/0008-minimal-stdf-cp-export.md).
+The full STDF record set and multi-site model are recorded in [ADR-0011](docs/adr/0011-full-stdf-and-multi-site.md); the minimal CP loop's historical decision is in [ADR-0008](docs/adr/0008-minimal-stdf-cp-export.md); the third-party STDF library build-vs-adopt evaluation is in [ADR-0012](docs/adr/0012-stdf-library-build-vs-adopt.md). STDF V4 has no `WER` record; the corresponding Wafer configuration record is WCR (2,30). FTR carries no unit or limit fields in the standard, so Numeric items use PTR for units and limits while Functional items use FTR for the test name, Tester Site, and pass/fail result.
 
 ## FT and CP-FT traceability
 
@@ -273,7 +281,7 @@ The built-in minimal FT catalog (`ft-catalog-v1`) has six Numeric Test Items (Ic
 }
 ```
 
-The STDF FT file (`<LOTID>_FT.stdf`) contains FAR, one ATR per FT Unit, MIR with `TEST_COD` `FT`, one PIR/PTR/PRR group per FT Unit, and MRR. The ATRs sit between FAR and MIR, where STDF V4 expects audit records. PRR carries the source Die X/Y and the FT Unit id as PART_ID. Each ATR's CMD_LINE carries `UNIT_ID` (matching the PRR PART_ID), `SOURCE_WAFER_ID`, `SOURCE_DIE_X`, `SOURCE_DIE_Y`, `ASSEMBLY_LOT`, and `CP_RESULT` as `KEY=VALUE` pairs, so records join after import and Escapes are identifiable. The manifest's FT Units, Assembly Loss, and Escapes reconcile with the file. See [ADR-0010](docs/adr/0010-ft-traceability-and-stdf-export.md) and [`examples/ft.json`](examples/ft.json).
+The STDF FT file (`<LOTID>_FT.stdf`) contains FAR, one ATR per FT Unit, MIR with `TEST_COD` `FT`, SDR (one Tester Site), one PIR, PTR or FTR, and PRR group per FT Unit, the TSR/HBR/SBR/PCR summaries, and MRR. FT is package test rather than wafer sort, so it has no WIR/WCR/WRR; source Wafer traceability lives in the ATRs. The ATRs sit between FAR and MIR, where STDF V4 expects audit records. PRR carries the source Die X/Y and the FT Unit id as PART_ID. Each ATR's CMD_LINE carries `UNIT_ID` (matching the PRR PART_ID), `SOURCE_WAFER_ID`, `SOURCE_DIE_X`, `SOURCE_DIE_Y`, `ASSEMBLY_LOT`, and `CP_RESULT` as `KEY=VALUE` pairs, so records join after import and Escapes are identifiable. The manifest's FT Units, Assembly Loss, and Escapes reconcile with the file. See [ADR-0011](docs/adr/0011-full-stdf-and-multi-site.md), [ADR-0010](docs/adr/0010-ft-traceability-and-stdf-export.md), and [`examples/ft.json`](examples/ft.json).
 
 ## WAT catalog and TXT export
 

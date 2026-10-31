@@ -26,6 +26,21 @@ public sealed class DieMap
     public int PartialDieFound => Counts.PartialDieFound;
 
     public int PartialDieRetained => Counts.PartialDieRetained;
+
+    /// <summary>
+    /// The tested Die nearest the physical wafer center. Its Die Index coordinates are
+    /// the reference point an STDF WCR names as CENTER_X/CENTER_Y.
+    /// </summary>
+    public (int X, int Y) CenterDieIndex()
+    {
+        var center = Dies
+            .Where(die => die.Tested)
+            .OrderBy(die => (die.CenterXmm * die.CenterXmm) + (die.CenterYmm * die.CenterYmm))
+            .ThenBy(die => die.X)
+            .ThenBy(die => die.Y)
+            .First();
+        return (center.X, center.Y);
+    }
 }
 
 public sealed record Die(

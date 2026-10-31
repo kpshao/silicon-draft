@@ -60,7 +60,7 @@ public sealed class GenerationPipelineTests
 
         using var manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
         var root = manifest.RootElement;
-        Assert.Equal(5, root.GetProperty("manifestSchemaVersion").GetInt32());
+        Assert.Equal(6, root.GetProperty("manifestSchemaVersion").GetInt32());
         Assert.Equal(1, root.GetProperty("configSchemaVersion").GetInt32());
         Assert.Equal(42, root.GetProperty("seed").GetInt64());
 
@@ -85,7 +85,7 @@ public sealed class GenerationPipelineTests
         Assert.Equal(336, datasetMetadata.GetProperty("partialDie").GetInt32());
 
         var cp = datasetMetadata.GetProperty("cp");
-        Assert.Equal("cp-catalog-v1", cp.GetProperty("catalogVersion").GetString());
+        Assert.Equal("cp-catalog-v2", cp.GetProperty("catalogVersion").GetString());
         Assert.Equal(2517, cp.GetProperty("testedDie").GetInt32());
         var passedDie = cp.GetProperty("passedDie").GetInt32();
         Assert.InRange(passedDie, 1, 2516);

@@ -22,9 +22,12 @@ internal static class CpGenerator
                 continue;
             }
 
+            var siteRandom = new SplitMix64(
+                DeterministicSeed.ForCpSite(seed, lotId, waferId, die.X, die.Y));
+            var site = 1 + siteRandom.NextInt(program.SiteCount);
             var random = new SplitMix64(DeterministicSeed.ForDie(seed, lotId, waferId, die.X, die.Y));
-            var tests = TestSampler.SampleAll(program.Items, ref random);
-            results.Add(CpDieResult.Create(die, tests, program.Bins));
+            var tests = TestSampler.SampleAll(program.Items, ref random, site);
+            results.Add(CpDieResult.Create(die, site, tests, program.Bins));
         }
 
         return results;

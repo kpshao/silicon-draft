@@ -106,7 +106,7 @@ internal static class FtGenerator
         var die = source.Result.Die;
         var random = new SplitMix64(
             DeterministicSeed.ForFtUnit(seed, lotId, source.WaferId, die.X, die.Y));
-        var tests = TestSampler.SampleAll(program.Items, ref random);
+        var tests = TestSampler.SampleAll(program.Items, ref random, siteNumber: 1);
         return FtUnit.Create(source.WaferId, die, source.Result.Passed, tests, program.Bins);
     }
 

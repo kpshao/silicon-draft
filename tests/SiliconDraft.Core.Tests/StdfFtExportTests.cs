@@ -37,7 +37,7 @@ public sealed class StdfFtExportTests
     }
 
     [Fact]
-    public void Export_StdfFtHasTheRequiredRecordSequence()
+    public void Export_StdfFtHasTheFullV4RecordSetWithoutWaferRecords()
     {
         using var workspace = new TestWorkspace();
         var dataset = Generate(TwoLots);
@@ -48,56 +48,70 @@ public sealed class StdfFtExportTests
         for (var lotIndex = 0; lotIndex < dataset.Lots.Count; lotIndex++)
         {
             var lot = dataset.Lots[lotIndex];
-            var records = StdfReader.Read(result.FtPaths[lotIndex]);
-            Assert.Equal(new FarInfo(0, 4), StdfReader.ParseFar(records[0]));
-
-            var unitCount = lot.FtUnits.Count;
-            for (var atrIndex = 0; atrIndex < unitCount; atrIndex++)
-            {
-                Assert.Equal((byte)0, records[1 + atrIndex].Type);
-                Assert.Equal((byte)20, records[1 + atrIndex].Sub);
-                StdfReader.ParseAtr(records[1 + atrIndex]);
-            }
-
-            var mirIndex = 1 + unitCount;
-            var mir = StdfReader.ParseMir(records[mirIndex]);
-            Assert.Equal(lot.Id, mir.LotId);
-            Assert.Equal("DemoProduct", mir.PartType);
-            Assert.Equal("DemoProduct_FT", mir.JobName);
-            Assert.Equal("FT", mir.TestCode);
-
-            var mrrIndex = records.Count - 1;
-            Assert.Equal((byte)1, records[mrrIndex].Type);
-            Assert.Equal((byte)20, records[mrrIndex].Sub);
-
+            var file = ReadFtFile(result.FtPaths[lotIndex]);
+            var siteCount = dataset.FtProgram.SiteCount;
             var itemCount = dataset.FtProgram.Items.Count;
-            var unitIndex = 0;
-            var index = mirIndex + 1;
-            while (index < mrrIndex)
-            {
-                var pir = StdfReader.ParsePir(records[index++]);
-                Assert.Equal((byte)1, pir.HeadNumber);
-                Assert.Equal((byte)1, pir.SiteNumber);
-                for (var testIndex = 0; testIndex < itemCount; testIndex++)
-                {
-                    Assert.Equal((byte)15, records[index].Type);
-                    Assert.Equal((byte)10, records[index].Sub);
-                    var ptr = StdfReader.ParsePtr(records[index++]);
-                    Assert.Equal((byte)1, ptr.HeadNumber);
-                    Assert.Equal((byte)1, ptr.SiteNumber);
-                }
 
-                Assert.Equal((byte)5, records[index].Type);
-                Assert.Equal((byte)20, records[index].Sub);
-                var prr = StdfReader.ParsePrr(records[index++]);
-                Assert.Equal((byte)1, prr.HeadNumber);
-                Assert.Equal((byte)1, prr.SiteNumber);
-                unitIndex++;
+            Assert.Equal((byte)siteCount, file.Sdr.SiteCount);
+            Assert.Equal(lot.FtUnits.Count, file.Atrs.Count);
+            Assert.Equal("FT", file.Mir.TestCode);
+            Assert.DoesNotContain(file.AllRecords, record =>
+                record.Type == 2 && record.Sub is 10 or 20 or 30);
+
+            var units = file.Units;
+            Assert.Equal(lot.FtUnits.Count, units.Count);
+            Assert.All(units, unit =>
+            {
+                Assert.Equal((byte)1, unit.Pir.SiteNumber);
+                Assert.Equal((byte)1, unit.Prr.SiteNumber);
+                Assert.All(unit.Ptrs, ptr => Assert.Equal((byte)1, ptr.SiteNumber));
+                Assert.All(unit.Ftrs, ftr => Assert.Equal((byte)1, ftr.SiteNumber));
+            });
+
+            Assert.Equal(itemCount, file.Tsrs.Count);
+            for (var itemIndex = 0; itemIndex < itemCount; itemIndex++)
+            {
+                var item = dataset.FtProgram.Items[itemIndex];
+                var tsr = file.Tsrs[itemIndex];
+                Assert.Equal(item.Name, tsr.TestName);
+                Assert.Equal((byte)1, tsr.SiteNumber);
+                Assert.Equal(item is FunctionalTestItem ? 'F' : 'P', tsr.TestType);
+                Assert.Equal((uint)lot.FtUnits.Count, tsr.ExecutionCount);
+                Assert.Equal(
+                    (uint)lot.FtUnits.Count(unit => !unit.Tests[itemIndex].Passed),
+                    tsr.FailCount);
             }
 
-            Assert.Equal(mrrIndex, index);
-            Assert.Equal(unitCount, unitIndex);
+            Assert.Equal(3, file.Hbrs.Count);
+            Assert.Equal(itemCount + 1, file.Sbrs.Count);
+            var pcr = Assert.Single(file.Pcrs);
+            Assert.Equal((uint)lot.FtUnits.Count, pcr.PartCount);
+            Assert.Equal((uint)lot.FtUnits.Count(unit => unit.Passed), pcr.GoodCount);
+
+            var recordKinds = file.AllRecords.Select(record => (record.Type, record.Sub)).ToHashSet();
+            foreach (var kind in StdfRecordKinds.FtV4Set)
+            {
+                Assert.Contains(kind, recordKinds);
+            }
         }
+    }
+
+    [Fact]
+    public void Export_StdfFtKeepsSourceWaferTraceabilityInAtrs()
+    {
+        using var workspace = new TestWorkspace();
+        var dataset = Generate(lotsJson: """[ { "id": "LOT-0001", "waferCount": 2 } ]""");
+        var outputDirectory = workspace.PathFor("dataset");
+
+        var result = new GenerationPipeline().Export(dataset, outputDirectory);
+        var file = ReadFtFile(Assert.Single(result.FtPaths));
+
+        var sourceWafers = dataset.Lots[0].Wafers.Select(wafer => wafer.Id).ToHashSet();
+        Assert.All(file.Units, unit =>
+            Assert.Contains(unit.Atr.ParseFields()["SOURCE_WAFER_ID"], sourceWafers));
+        Assert.Equal(
+            dataset.Lots[0].FtUnits.Count,
+            file.Units.Count);
     }
 
     [Fact]
@@ -111,18 +125,20 @@ public sealed class StdfFtExportTests
 
         for (var lotIndex = 0; lotIndex < dataset.Lots.Count; lotIndex++)
         {
-            var groups = ReadFtGroups(result.FtPaths[lotIndex]);
-            var units = dataset.Lots[lotIndex].FtUnits;
-            Assert.Equal(units.Count, groups.Count);
-            for (var index = 0; index < groups.Count; index++)
+            var units = AllUnits(ReadFtFile(result.FtPaths[lotIndex]));
+            var expected = dataset.Lots[lotIndex].FtUnits;
+            Assert.Equal(expected.Count, units.Count);
+            for (var index = 0; index < units.Count; index++)
             {
-                Assert.Equal(units[index].SourceDie.X, groups[index].Prr.X);
-                Assert.Equal(units[index].SourceDie.Y, groups[index].Prr.Y);
-                Assert.Equal(units[index].Id, groups[index].Prr.PartId);
-                Assert.Equal(units[index].HardBin, groups[index].Prr.HardBin);
-                Assert.Equal(units[index].SoftBin, groups[index].Prr.SoftBin);
-                Assert.Equal(units[index].Tests.Count, groups[index].Prr.NumberOfTests);
-                Assert.Equal(units[index].Passed ? (byte)0x00 : (byte)0x08, groups[index].Prr.PartFlags);
+                Assert.Equal(expected[index].SourceDie.X, units[index].Prr.X);
+                Assert.Equal(expected[index].SourceDie.Y, units[index].Prr.Y);
+                Assert.Equal(expected[index].Id, units[index].Prr.PartId);
+                Assert.Equal(expected[index].HardBin, units[index].Prr.HardBin);
+                Assert.Equal(expected[index].SoftBin, units[index].Prr.SoftBin);
+                Assert.Equal(expected[index].Tests.Count, units[index].Prr.NumberOfTests);
+                Assert.Equal(
+                    expected[index].Passed ? (byte)0x00 : (byte)0x08,
+                    units[index].Prr.PartFlags);
             }
         }
     }
@@ -139,10 +155,10 @@ public sealed class StdfFtExportTests
         for (var lotIndex = 0; lotIndex < dataset.Lots.Count; lotIndex++)
         {
             var lot = dataset.Lots[lotIndex];
-            var groups = ReadFtGroups(result.FtPaths[lotIndex]);
-            for (var index = 0; index < groups.Count; index++)
+            var units = AllUnits(ReadFtFile(result.FtPaths[lotIndex]));
+            for (var index = 0; index < units.Count; index++)
             {
-                var fields = groups[index].Atr.ParseFields();
+                var fields = units[index].Atr.ParseFields();
                 Assert.All(TraceabilityFields, field => Assert.True(fields.ContainsKey(field)));
                 Assert.Equal(lot.FtUnits[index].Id, fields["UNIT_ID"]);
                 Assert.Equal(lot.FtUnits[index].SourceWaferId, fields["SOURCE_WAFER_ID"]);
@@ -162,7 +178,9 @@ public sealed class StdfFtExportTests
         var outputDirectory = workspace.PathFor("dataset");
 
         var result = new GenerationPipeline().Export(dataset, outputDirectory);
-        var prrs = ReadFtGroups(result.FtPaths[0]).Select(group => group.Prr).ToArray();
+        var prrs = AllUnits(ReadFtFile(result.FtPaths[0]))
+            .Select(unit => unit.Prr)
+            .ToArray();
 
         using var manifest = JsonDocument.Parse(File.ReadAllText(result.ManifestPath!));
         var lot = manifest.RootElement.GetProperty("dataset").GetProperty("lots")
@@ -216,9 +234,9 @@ public sealed class StdfFtExportTests
         var observedEscapes = 0;
         for (var lotIndex = 0; lotIndex < dataset.Lots.Count; lotIndex++)
         {
-            foreach (var group in ReadFtGroups(result.FtPaths[lotIndex]))
+            foreach (var unit in AllUnits(ReadFtFile(result.FtPaths[lotIndex])))
             {
-                if (group.Atr.ParseFields()["CP_RESULT"] == "Fail")
+                if (unit.Atr.ParseFields()["CP_RESULT"] == "Fail")
                 {
                     observedEscapes++;
                 }
@@ -254,26 +272,26 @@ public sealed class StdfFtExportTests
             var cpByKey = cpPrrs.ToDictionary(
                 prr => (prr.PartId.Split(':')[0], (int)prr.X, (int)prr.Y));
 
-            var ftGroups = ReadFtGroups(result.FtPaths[lotIndex]);
-            foreach (var group in ftGroups)
+            var ftUnits = AllUnits(ReadFtFile(result.FtPaths[lotIndex]));
+            foreach (var unit in ftUnits)
             {
-                var fields = group.Atr.ParseFields();
+                var fields = unit.Atr.ParseFields();
                 var waferId = fields["SOURCE_WAFER_ID"];
                 var x = int.Parse(fields["SOURCE_DIE_X"]);
                 var y = int.Parse(fields["SOURCE_DIE_Y"]);
                 Assert.True(cpByKey.ContainsKey((waferId, x, y)));
-                Assert.Equal((short)x, group.Prr.X);
-                Assert.Equal((short)y, group.Prr.Y);
-                Assert.Equal($"{waferId}:{x},{y}", group.Prr.PartId);
-                Assert.Equal(group.Prr.PartId, fields["UNIT_ID"]);
+                Assert.Equal((short)x, unit.Prr.X);
+                Assert.Equal((short)y, unit.Prr.Y);
+                Assert.Equal($"{waferId}:{x},{y}", unit.Prr.PartId);
+                Assert.Equal(unit.Prr.PartId, fields["UNIT_ID"]);
                 var cpPassed = (cpByKey[(waferId, x, y)].PartFlags & 0x08) == 0;
                 Assert.Equal(cpPassed, fields["CP_RESULT"] == "Pass");
             }
 
             cpPassCount += cpPrrs.Count(prr => (prr.PartFlags & 0x08) == 0);
-            ftCount += ftGroups.Count;
-            escapeCount += ftGroups.Count(group =>
-                group.Atr.ParseFields()["CP_RESULT"] == "Fail");
+            ftCount += ftUnits.Count;
+            escapeCount += ftUnits.Count(unit =>
+                unit.Atr.ParseFields()["CP_RESULT"] == "Fail");
         }
 
         Assert.Equal(cpPassCount - 2 + escapeCount, ftCount);
@@ -299,45 +317,81 @@ public sealed class StdfFtExportTests
         }
     }
 
-    private static List<FtGroup> ReadFtGroups(string path)
+    private static FtFile ReadFtFile(string path)
     {
         var records = StdfReader.Read(path);
+        var index = 0;
+        Assert.Equal(new FarInfo(2, 4), StdfReader.ParseFar(records[index++]));
+
         var atrs = new List<AtrInfo>();
-        var index = 1; // FAR
-        while (index < records.Count && records[index].Type == 0 && records[index].Sub == 20)
+        while (records[index].Type == 0 && records[index].Sub == 20)
         {
             atrs.Add(StdfReader.ParseAtr(records[index++]));
         }
 
-        Assert.Equal((byte)1, records[index].Type);
-        Assert.Equal((byte)10, records[index].Sub);
-        StdfReader.ParseMir(records[index++]);
+        var mir = StdfReader.ParseMir(records[index++]);
+        var sdr = StdfReader.ParseSdr(records[index++]);
+        var atrByUnit = atrs.ToDictionary(atr => atr.ParseFields()["UNIT_ID"], atr => atr);
 
-        var units = new List<(PirInfo Pir, IReadOnlyList<PtrInfo> Ptrs, PrrInfo Prr)>();
-        while (index < records.Count && records[index].Type == 5 && records[index].Sub == 10)
+        var units = new List<FtUnitRecord>();
+        while (records[index].Type == 5 && records[index].Sub == 10)
         {
             var pir = StdfReader.ParsePir(records[index++]);
             var ptrs = new List<PtrInfo>();
-            while (records[index].Type == 15 && records[index].Sub == 10)
+            var ftrs = new List<FtrInfo>();
+            while (records[index].Type == 15)
             {
-                ptrs.Add(StdfReader.ParsePtr(records[index++]));
+                if (records[index].Sub == 10)
+                {
+                    ptrs.Add(StdfReader.ParsePtr(records[index++]));
+                }
+                else if (records[index].Sub == 20)
+                {
+                    ftrs.Add(StdfReader.ParseFtr(records[index++]));
+                }
+                else
+                {
+                    Assert.Fail($"unexpected test record ({records[index].Type},{records[index].Sub})");
+                }
             }
 
-            units.Add((pir, ptrs, StdfReader.ParsePrr(records[index++])));
+            var prr = StdfReader.ParsePrr(records[index++]);
+            units.Add(new FtUnitRecord(
+                pir, ptrs, ftrs, prr, atrByUnit[prr.PartId]));
         }
 
-        Assert.Equal((byte)1, records[index].Type);
-        Assert.Equal((byte)20, records[index].Sub);
-        Assert.Equal(records.Count - 1, index);
+        var tsrs = new List<TsrInfo>();
+        while (records[index].Type == 10 && records[index].Sub == 30)
+        {
+            tsrs.Add(StdfReader.ParseTsr(records[index++]));
+        }
 
-        var atrByUnit = atrs.ToDictionary(
-            atr => atr.ParseFields()["UNIT_ID"], atr => atr);
+        var hbrs = new List<HbrInfo>();
+        while (records[index].Type == 1 && records[index].Sub == 40)
+        {
+            hbrs.Add(StdfReader.ParseHbr(records[index++]));
+        }
+
+        var sbrs = new List<SbrInfo>();
+        while (records[index].Type == 1 && records[index].Sub == 50)
+        {
+            sbrs.Add(StdfReader.ParseSbr(records[index++]));
+        }
+
+        var pcrs = new List<PcrInfo>();
+        while (records[index].Type == 1 && records[index].Sub == 30)
+        {
+            pcrs.Add(StdfReader.ParsePcr(records[index++]));
+        }
+
+        var mrr = StdfReader.ParseMrr(records[index++]);
+        Assert.Equal(records.Count, index);
+
         Assert.Equal(units.Count, atrByUnit.Count);
-        return units
-            .Select(unit => new FtGroup(
-                unit.Pir, unit.Ptrs, unit.Prr, atrByUnit[unit.Prr.PartId]))
-            .ToList();
+        return new FtFile(atrs, mir, sdr, units, tsrs, hbrs, sbrs, pcrs, mrr, records);
     }
+
+    private static IReadOnlyList<FtUnitRecord> AllUnits(FtFile file) => file.Units;
 
     private static Dataset Generate(
         string lotsJson = TwoLots, string? ftJson = null)
@@ -350,9 +404,22 @@ public sealed class StdfFtExportTests
         return pipeline.Generate(pipeline.Validate(workspace.WriteConfig(json)).Config!);
     }
 
-    private sealed record FtGroup(
+    private sealed record FtFile(
+        IReadOnlyList<AtrInfo> Atrs,
+        MirInfo Mir,
+        SdrInfo Sdr,
+        IReadOnlyList<FtUnitRecord> Units,
+        IReadOnlyList<TsrInfo> Tsrs,
+        IReadOnlyList<HbrInfo> Hbrs,
+        IReadOnlyList<SbrInfo> Sbrs,
+        IReadOnlyList<PcrInfo> Pcrs,
+        MrrInfo Mrr,
+        IReadOnlyList<StdfRecord> AllRecords);
+
+    private sealed record FtUnitRecord(
         PirInfo Pir,
         IReadOnlyList<PtrInfo> Ptrs,
+        IReadOnlyList<FtrInfo> Ftrs,
         PrrInfo Prr,
         AtrInfo Atr);
 }

@@ -72,6 +72,10 @@ _Avoid_: Site (unqualified)
 测试机的一个并行测试资源，可能引入系统性的测量偏移。
 _Avoid_: Site (unqualified)
 
+**Site Offset（站点偏移）**：
+某个 Test Item 在特定 Tester Site 上的加性测量偏移，用于模拟 site-to-site 系统差异。
+_Avoid_: Site bias, per-site shift
+
 **Test Program（测试程序）**：
 在某个测试步骤中施加于一个 Product 的有序 test item、limits 和 bins 集合。
 _Avoid_: Recipe
@@ -287,6 +291,10 @@ _Avoid_: Site (unqualified)
 **Tester Site**:
 One of a tester's parallel test resources, which can introduce systematic measurement offsets.
 _Avoid_: Site (unqualified)
+
+**Site Offset**:
+An additive measurement offset a Test Item carries on a specific Tester Site, modeling systematic site-to-site differences.
+_Avoid_: Site bias, per-site shift
 
 **Test Program**:
 The ordered set of test items, limits, and bins applied to one Product at one test step.

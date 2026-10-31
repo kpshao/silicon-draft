@@ -29,7 +29,7 @@ public sealed class WaferMapExportTests
 
         using var manifest = JsonDocument.Parse(File.ReadAllText(result.ManifestPath!));
         var root = manifest.RootElement;
-        Assert.Equal(5, root.GetProperty("manifestSchemaVersion").GetInt32());
+        Assert.Equal(6, root.GetProperty("manifestSchemaVersion").GetInt32());
         var datasetMetadata = root.GetProperty("dataset");
         Assert.Equal(61, datasetMetadata.GetProperty("grossDie").GetInt32());
         Assert.Equal(40, datasetMetadata.GetProperty("partialDie").GetInt32());

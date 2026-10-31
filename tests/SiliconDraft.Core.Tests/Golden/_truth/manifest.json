@@ -1,5 +1,5 @@
 {
-  "manifestSchemaVersion": 5,
+  "manifestSchemaVersion": 6,
   "configSchemaVersion": 1,
   "seed": 42,
   "resolvedConfig": {
@@ -38,7 +38,8 @@
         "parametricFailHardBin": 2,
         "functionalFailHardBin": 3
       },
-      "testItems": []
+      "testItems": [],
+      "siteCount": 8
     },
     "ft": {
       "assemblyLoss": 0,
@@ -108,7 +109,7 @@
     "partialDie": 40,
     "partialDieRetained": 0,
     "cp": {
-      "catalogVersion": "cp-catalog-v1",
+      "catalogVersion": "cp-catalog-v2",
       "testedDie": 61,
       "passedDie": 55,
       "yield": 0.901639,
@@ -290,7 +291,7 @@
         "partialDie": 40,
         "partialDieRetained": 0,
         "cp": {
-          "catalogVersion": "cp-catalog-v1",
+          "catalogVersion": "cp-catalog-v2",
           "testedDie": 61,
           "passedDie": 55,
           "yield": 0.901639,

@@ -16,9 +16,17 @@ internal static class TestItemFactory
         Limits specLimits,
         Limits testLimits,
         int failSoftBin,
-        Distribution distribution) =>
+        Distribution distribution,
+        IReadOnlyList<double>? siteOffsets = null) =>
         new NumericTestItem(
-            testNumber, name, unit, specLimits, testLimits, failSoftBin, distribution);
+            testNumber,
+            name,
+            unit,
+            specLimits,
+            testLimits,
+            failSoftBin,
+            distribution,
+            siteOffsets ?? []);
 
     public static TestItem Functional(
         int testNumber,

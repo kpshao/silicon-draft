@@ -4,8 +4,9 @@ using System.Text;
 namespace SiliconDraft.TestSupport;
 
 /// <summary>
-/// A minimal, test-only STDF V4 reader. It parses the record stream and just enough
-/// fields of FAR, MIR, PIR, PTR, PRR, and MRR to assert exported content.
+/// A minimal, test-only STDF V4 reader. It parses the record stream and enough fields of
+/// FAR, ATR, MIR, SDR, WIR, WCR, WRR, PCR, HBR, SBR, TSR, PIR, PRR, PTR, FTR, and MRR to
+/// assert exported content and record framing.
 /// </summary>
 public static class StdfReader
 {
@@ -146,6 +147,176 @@ public static class StdfReader
         return new AtrInfo(reader.ReadU4(), reader.ReadCn());
     }
 
+    public static SdrInfo ParseSdr(StdfRecord record)
+    {
+        Require(record, 1, 80, "SDR");
+        var reader = new FieldReader(record.Data);
+        var head = reader.ReadU1();
+        var siteGroup = reader.ReadU1();
+        var siteCount = reader.ReadU1();
+        var siteNumbers = new byte[siteCount];
+        for (var index = 0; index < siteCount; index++)
+        {
+            siteNumbers[index] = reader.ReadU1();
+        }
+
+        // The eight hardware type/ID pairs follow; SiliconDraft writes them empty but
+        // still present, so consume them to prove the record is well formed.
+        for (var index = 0; index < 16; index++)
+        {
+            reader.ReadCn();
+        }
+
+        return new SdrInfo(head, siteGroup, siteCount, siteNumbers);
+    }
+
+    public static WirInfo ParseWir(StdfRecord record)
+    {
+        Require(record, 2, 10, "WIR");
+        var reader = new FieldReader(record.Data);
+        return new WirInfo(reader.ReadU1(), reader.ReadU1(), reader.ReadU4(), reader.ReadCn());
+    }
+
+    public static WcrInfo ParseWcr(StdfRecord record)
+    {
+        Require(record, 2, 30, "WCR");
+        var reader = new FieldReader(record.Data);
+        return new WcrInfo(
+            reader.ReadR4(),
+            reader.ReadR4(),
+            reader.ReadR4(),
+            reader.ReadU1(),
+            reader.ReadB1(),
+            reader.ReadI2(),
+            reader.ReadI2(),
+            reader.ReadI1(),
+            reader.ReadI1());
+    }
+
+    public static WrrInfo ParseWrr(StdfRecord record)
+    {
+        Require(record, 2, 20, "WRR");
+        var reader = new FieldReader(record.Data);
+        var head = reader.ReadU1();
+        var siteGroup = reader.ReadU1();
+        var finishTime = reader.ReadU4();
+        var partCount = reader.ReadU4();
+        var retestCount = reader.ReadU4();
+        var abortCount = reader.ReadU4();
+        var goodCount = reader.ReadU4();
+        var functionalCount = reader.ReadU4();
+        var waferId = reader.ReadCn();
+        return new WrrInfo(
+            head,
+            siteGroup,
+            finishTime,
+            partCount,
+            retestCount,
+            abortCount,
+            goodCount,
+            functionalCount,
+            waferId);
+    }
+
+    public static PcrInfo ParsePcr(StdfRecord record)
+    {
+        Require(record, 1, 30, "PCR");
+        var reader = new FieldReader(record.Data);
+        return new PcrInfo(
+            reader.ReadU1(),
+            reader.ReadU1(),
+            reader.ReadU4(),
+            reader.ReadU4(),
+            reader.ReadU4(),
+            reader.ReadU4());
+    }
+
+    public static HbrInfo ParseHbr(StdfRecord record)
+    {
+        Require(record, 1, 40, "HBR");
+        var reader = new FieldReader(record.Data);
+        return new HbrInfo(
+            reader.ReadU1(),
+            reader.ReadU1(),
+            reader.ReadU2(),
+            reader.ReadU4(),
+            reader.ReadC1(),
+            reader.ReadCn());
+    }
+
+    public static SbrInfo ParseSbr(StdfRecord record)
+    {
+        Require(record, 1, 50, "SBR");
+        var reader = new FieldReader(record.Data);
+        return new SbrInfo(
+            reader.ReadU1(),
+            reader.ReadU1(),
+            reader.ReadU2(),
+            reader.ReadU4(),
+            reader.ReadC1(),
+            reader.ReadCn());
+    }
+
+    public static TsrInfo ParseTsr(StdfRecord record)
+    {
+        Require(record, 10, 30, "TSR");
+        var reader = new FieldReader(record.Data);
+        return new TsrInfo(
+            reader.ReadU1(),
+            reader.ReadU1(),
+            reader.ReadC1(),
+            reader.ReadU4(),
+            reader.ReadU4(),
+            reader.ReadU4(),
+            reader.ReadU4(),
+            reader.ReadCn());
+    }
+
+    public static FtrInfo ParseFtr(StdfRecord record)
+    {
+        Require(record, 15, 20, "FTR");
+        var reader = new FieldReader(record.Data);
+        var testNumber = reader.ReadU4();
+        var head = reader.ReadU1();
+        var site = reader.ReadU1();
+        // STDF V4 FTR has no PARM_FLG; TEST_FLG is followed directly by OPT_FLAG.
+        var testFlags = reader.ReadB1();
+        var optionalFlags = reader.ReadB1();
+        reader.ReadU4(); // CYCL_CNT
+        reader.ReadU4(); // REL_VADR
+        reader.ReadU4(); // REPT_CNT
+        reader.ReadU4(); // NUM_FAIL
+        reader.ReadI4(); // XFAIL_AD
+        reader.ReadI4(); // YFAIL_AD
+        reader.ReadI2(); // VECT_OFF
+        var returnIndexCount = reader.ReadU2();
+        var programIndexCount = reader.ReadU2();
+        reader.Skip(returnIndexCount * 2);
+        reader.Skip((returnIndexCount + 1) / 2);
+        reader.Skip(programIndexCount * 2);
+        reader.Skip((programIndexCount + 1) / 2);
+        reader.ReadDn(); // FAIL_PIN
+        reader.ReadCn(); // VECT_NAM
+        reader.ReadCn(); // TIME_SET
+        reader.ReadCn(); // OP_CODE
+        var testText = reader.ReadCn();
+        var alarmId = reader.ReadCn();
+        reader.ReadCn(); // PROG_TXT
+        var resultText = reader.ReadCn();
+        reader.ReadU1(); // PATG_NUM
+        reader.ReadDn(); // SPIN_MAP
+
+        return new FtrInfo(
+            testNumber,
+            head,
+            site,
+            testFlags,
+            optionalFlags,
+            resultText,
+            testText,
+            alarmId);
+    }
+
     public static PrrInfo ParsePrr(StdfRecord record)
     {
         Require(record, 5, 20, "PRR");
@@ -202,6 +373,8 @@ public static class StdfReader
 
         public short ReadI2() => BinaryPrimitives.ReadInt16LittleEndian(ReadBytes(2));
 
+        public int ReadI4() => BinaryPrimitives.ReadInt32LittleEndian(ReadBytes(4));
+
         public uint ReadU4() => BinaryPrimitives.ReadUInt32LittleEndian(ReadBytes(4));
 
         public float ReadR4() => BinaryPrimitives.ReadSingleLittleEndian(ReadBytes(4));
@@ -217,6 +390,15 @@ public static class StdfReader
             var length = ReadU1();
             return ReadBytes(length).ToArray();
         }
+
+        public byte[] ReadDn()
+        {
+            // D*n starts with a U2 bit count, then ceil(bits / 8) bytes.
+            var bitCount = ReadU2();
+            return ReadBytes((bitCount + 7) / 8).ToArray();
+        }
+
+        public void Skip(int count) => ReadBytes(count);
 
         private ReadOnlySpan<byte> ReadBytes(int count)
         {
@@ -294,6 +476,91 @@ public sealed record AtrInfo(uint ModificationTime, string CommandLine)
             .ToDictionary(
                 parts => parts[0],
                 parts => parts.Length == 2 ? parts[1] : string.Empty);
+}
+
+public sealed record SdrInfo(
+    byte HeadNumber,
+    byte SiteGroup,
+    byte SiteCount,
+    IReadOnlyList<byte> SiteNumbers);
+
+public sealed record WirInfo(byte HeadNumber, byte SiteGroup, uint StartTime, string WaferId);
+
+public sealed record WcrInfo(
+    float WaferSize,
+    float DieWidth,
+    float DieHeight,
+    byte WaferUnits,
+    byte WaferFlat,
+    short CenterX,
+    short CenterY,
+    sbyte PositiveX,
+    sbyte PositiveY);
+
+public sealed record WrrInfo(
+    byte HeadNumber,
+    byte SiteGroup,
+    uint FinishTime,
+    uint PartCount,
+    uint RetestCount,
+    uint AbortCount,
+    uint GoodCount,
+    uint FunctionalCount,
+    string WaferId);
+
+public sealed record PcrInfo(
+    byte HeadNumber,
+    byte SiteNumber,
+    uint PartCount,
+    uint RetestCount,
+    uint AbortCount,
+    uint GoodCount);
+
+public sealed record HbrInfo(
+    byte HeadNumber,
+    byte SiteNumber,
+    ushort HardBinNumber,
+    uint Count,
+    char PassFail,
+    string Name)
+{
+    public bool Pass => PassFail == 'P';
+}
+
+public sealed record SbrInfo(
+    byte HeadNumber,
+    byte SiteNumber,
+    ushort SoftBinNumber,
+    uint Count,
+    char PassFail,
+    string Name)
+{
+    public bool Pass => PassFail == 'P';
+}
+
+public sealed record TsrInfo(
+    byte HeadNumber,
+    byte SiteNumber,
+    char TestType,
+    uint TestNumber,
+    uint ExecutionCount,
+    uint FailCount,
+    uint AlarmCount,
+    string TestName);
+
+public sealed record FtrInfo(
+    uint TestNumber,
+    byte HeadNumber,
+    byte SiteNumber,
+    byte TestFlags,
+    byte OptionalFlags,
+    string ResultText,
+    string TestText,
+    string AlarmId)
+{
+    public bool Failed => (TestFlags & 0x80) != 0;
+
+    public bool Passed => !Failed;
 }
 
 public sealed record PrrInfo(

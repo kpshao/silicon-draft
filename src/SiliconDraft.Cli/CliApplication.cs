@@ -265,6 +265,9 @@ public static class CliApplication
         writer.WriteLine(
             $"  Partial die: {perWafer.PartialDieFound} per wafer, {totals.PartialDieFound} total (retained: {perWafer.PartialDieRetained})");
         writer.WriteLine();
+        writer.WriteLine(
+            $"CP: {dataset.CpProgram.SiteCount} Tester Sites, {dataset.CpProgram.Items.Count} test items");
+        writer.WriteLine();
         var ft = dataset.Ft;
         writer.WriteLine(
             $"FT: {ft.UnitCount} units from {dataset.Cp.PassedDie} CP-passing die " +

@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# Optional Python cross-check environment (tools/verify_stdf.py)
+.venv-stdf/
+
 # User-specific files
 *.rsuser
 *.suo

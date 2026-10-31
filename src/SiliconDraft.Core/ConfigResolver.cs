@@ -2,6 +2,7 @@ namespace SiliconDraft.Core;
 
 internal static class ConfigResolver
 {
+    private const int DefaultCpSiteCount = 8;
     private const double DefaultDiameterMm = 300;
     private const double DefaultEdgeExclusionMm = 3;
     private const double DefaultNotchAngleDeg = 270;
@@ -296,12 +297,20 @@ internal static class ConfigResolver
 
     private static CpConfig ResolveCp(CpDocument? cp, List<ConfigError> errors)
     {
+        var siteCount = cp?.SiteCount ?? DefaultCpSiteCount;
+        if (siteCount is < CpConfig.MinSiteCount or > CpConfig.MaxSiteCount)
+        {
+            errors.Add(new ConfigError(
+                "cp.siteCount",
+                $"must be between {CpConfig.MinSiteCount} and {CpConfig.MaxSiteCount}"));
+        }
+
         var bins = ResolveCpBins(cp?.Bins, errors);
-        var overrides = ResolveCpTestItems(cp?.TestItems, errors);
+        var overrides = ResolveCpTestItems(cp?.TestItems, siteCount, errors);
 
         ValidateEffectiveSoftBins(bins, overrides, errors);
 
-        return new CpConfig(bins, overrides);
+        return new CpConfig(bins, overrides, siteCount);
     }
 
     private static TestBins ResolveCpBins(CpBinsDocument? bins, List<ConfigError> errors)
@@ -339,7 +348,7 @@ internal static class ConfigResolver
     }
 
     private static List<CpTestItemOverride> ResolveCpTestItems(
-        List<CpTestItemDocument>? documents, List<ConfigError> errors)
+        List<CpTestItemDocument>? documents, int siteCount, List<ConfigError> errors)
     {
         var overrides = new List<CpTestItemOverride>();
         if (documents is null)
@@ -365,7 +374,8 @@ internal static class ConfigResolver
                 continue;
             }
 
-            if (CpCatalog.Find(name) is null)
+            var catalogItem = CpCatalog.Find(name);
+            if (catalogItem is null)
             {
                 errors.Add(new ConfigError($"{path}.name", $"unknown CP test item '{name}'"));
                 continue;
@@ -379,6 +389,8 @@ internal static class ConfigResolver
 
             var specLimits = ResolveLimits(document.SpecLimits, $"{path}.specLimits", errors);
             var testLimits = ResolveLimits(document.TestLimits, $"{path}.testLimits", errors);
+            var siteOffsets = ResolveSiteOffsets(
+                document.SiteOffsets, $"{path}.siteOffsets", siteCount, catalogItem, errors);
 
             int? failSoftBin = null;
             if (document.FailSoftBin is int configuredBin)
@@ -394,10 +406,58 @@ internal static class ConfigResolver
                 }
             }
 
-            overrides.Add(new CpTestItemOverride(name, specLimits, testLimits, failSoftBin));
+            overrides.Add(new CpTestItemOverride(
+                name, specLimits, testLimits, failSoftBin, siteOffsets));
         }
 
         return overrides;
+    }
+
+    /// <summary>
+    /// Site offsets are additive measurement shifts per Tester Site. Only Numeric Test
+    /// Items have a measurement value to shift, so Functional items reject them.
+    /// </summary>
+    private static IReadOnlyList<double>? ResolveSiteOffsets(
+        List<double?>? documents,
+        string path,
+        int siteCount,
+        CpCatalogItem catalogItem,
+        List<ConfigError> errors)
+    {
+        if (documents is null)
+        {
+            return null;
+        }
+
+        if (catalogItem is not NumericCatalogItem)
+        {
+            errors.Add(new ConfigError(
+                path, "site offsets are only supported for numeric test items"));
+            return null;
+        }
+
+        if (documents.Count != siteCount)
+        {
+            errors.Add(new ConfigError(
+                path, $"must contain exactly {siteCount} offsets, one per Tester Site"));
+            return null;
+        }
+
+        var offsets = new double[documents.Count];
+        var valid = true;
+        for (var index = 0; index < documents.Count; index++)
+        {
+            if (documents[index] is not double offset || !double.IsFinite(offset))
+            {
+                errors.Add(new ConfigError($"{path}[{index}]", "must be a finite number"));
+                valid = false;
+                continue;
+            }
+
+            offsets[index] = offset;
+        }
+
+        return valid ? offsets : null;
     }
 
     private static Limits? ResolveLimits(

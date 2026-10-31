@@ -1,10 +1,9 @@
 namespace SiliconDraft.Core;
 
 /// <summary>
-/// Writes the minimal STDF V4 CP file: FAR, MIR, one PIR/PTR/PRR group per tested Die,
-/// and MRR. Functional Test Items are exported as PTRs with a 1/0 result, P/F units,
-/// and limits so every item carries units and limits; FTR and multi-site records arrive
-/// in T6.
+/// Writes one Lot's STDF V4 CP file. The record stream is FAR, MIR, SDR, then per Wafer
+/// WIR/WCR, one PIR/test/PRR group per tested Die, and WRR; the lot summaries TSR, HBR,
+/// SBR, and PCR follow, and MRR closes the file.
 /// </summary>
 internal static class StdfCpWriter
 {
@@ -14,21 +13,29 @@ internal static class StdfCpWriter
 
     public static void Write(string path, Dataset dataset, Lot lot)
     {
+        var program = dataset.CpProgram;
+        var siteCount = program.SiteCount;
+        var (centerX, centerY) = dataset.DieMap.CenterDieIndex();
+        var parts = new List<StdfPartOutcome>(lot.Wafers.Sum(wafer => wafer.CpResults.Count));
         using var stream = new MemoryStream();
-        StdfFormat.WriteFile(stream, lot.Id, dataset.ProductName, "CP", parts =>
+        StdfFormat.WriteFile(stream, lot.Id, dataset.ProductName, "CP", body =>
         {
+            StdfFormat.WriteSdr(body, siteCount);
             foreach (var wafer in lot.Wafers)
             {
+                StdfFormat.WriteWir(body, wafer.Id);
+                StdfFormat.WriteWcr(body, dataset.Config.Wafer, centerX, centerY);
                 foreach (var result in wafer.CpResults)
                 {
-                    StdfFormat.WritePir(parts);
+                    StdfFormat.WritePir(body, result.Site);
                     foreach (var test in result.Tests)
                     {
-                        StdfFormat.WritePtr(parts, test);
+                        StdfFormat.WriteTestRecord(body, test, result.Site);
                     }
 
                     StdfFormat.WritePrr(
-                        parts,
+                        body,
+                        result.Site,
                         result.Die.X,
                         result.Die.Y,
                         result.Passed,
@@ -36,8 +43,14 @@ internal static class StdfCpWriter
                         result.HardBin,
                         result.SoftBin,
                         DieIdentity.UnitId(wafer.Id, result.Die));
+                    parts.Add(new StdfPartOutcome(
+                        result.Site, result.Tests, result.HardBin, result.SoftBin));
                 }
+
+                StdfFormat.WriteWrr(body, wafer.Id, wafer.CpResults.Count, wafer.NetDie);
             }
+
+            StdfSummaryWriter.Write(body, program, siteCount, parts);
         });
         File.WriteAllBytes(path, stream.ToArray());
     }

@@ -19,6 +19,20 @@ internal static class DeterministicSeed
             x.ToString(CultureInfo.InvariantCulture),
             y.ToString(CultureInfo.InvariantCulture));
 
+    /// <summary>
+    /// Chooses the Tester Site that tests a Die. The stream is independent of the test
+    /// sampling stream so site assignment cannot change a Die's measured values.
+    /// </summary>
+    public static ulong ForCpSite(long datasetSeed, string lotId, string waferId, int x, int y) =>
+        Hash(
+            datasetSeed,
+            lotId,
+            waferId,
+            x.ToString(CultureInfo.InvariantCulture),
+            y.ToString(CultureInfo.InvariantCulture),
+            "CP",
+            "SITE");
+
     public static ulong ForWat(
         long datasetSeed, string lotId, string waferId, string siteId, string testItem) =>
         Hash(datasetSeed, lotId, waferId, "WAT", siteId, testItem);
