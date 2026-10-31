@@ -38,7 +38,7 @@ public sealed class WatExportTests
         var result = new GenerationPipeline().Export(dataset, outputDirectory);
         var lines = File.ReadAllLines(Assert.Single(result.WatPaths));
 
-        Assert.Equal("# catalogVersion=wat-catalog-v2", lines[0]);
+        Assert.Equal("# catalogVersion=wat-catalog-v3", lines[0]);
         Assert.Equal(
             "lotId\twaferId\tsite\tsiteXmm\tsiteYmm\ttestItem\ttestNumber\tvalue\tunit" +
             "\tlowSpec\thighSpec\tlowTest\thighTest",
@@ -89,7 +89,7 @@ public sealed class WatExportTests
         var lines = File.ReadAllLines(Assert.Single(result.WatPaths));
         var items = dataset.WatProgram.Items;
 
-        Assert.Equal("# catalogVersion=wat-catalog-v2", lines[0]);
+        Assert.Equal("# catalogVersion=wat-catalog-v3", lines[0]);
         Assert.Equal(
             "# testItem\ttestNumber\tunit\tlowSpec\thighSpec\tlowTest\thighTest", lines[1]);
         for (var index = 0; index < items.Count; index++)

@@ -54,12 +54,13 @@ internal static class FtGenerator
     }
 
     public static IReadOnlyList<FtUnit> Generate(
-        TestProgram program,
+        LatentStepSampler sampler,
         FtConfig config,
         long seed,
         string lotId,
         IReadOnlyList<Wafer> wafers,
-        IReadOnlySet<FtDieKey> assemblyLoss)
+        IReadOnlySet<FtDieKey> assemblyLoss,
+        IReadOnlyDictionary<(string LotId, string WaferId), LatentWaferContext> contexts)
     {
         var sources = wafers
             .SelectMany(wafer => wafer.CpResults.Select(result => new FtSource(wafer.Id, result)))
@@ -74,7 +75,8 @@ internal static class FtGenerator
                 : IsEscape(config.EscapeRate, seed, lotId, source);
             if (admitted)
             {
-                units.Add(CreateUnit(program, seed, lotId, source));
+                units.Add(CreateUnit(
+                    sampler, lotId, source, contexts[(lotId, source.WaferId)]));
             }
         }
 
@@ -101,13 +103,16 @@ internal static class FtGenerator
             .NextDouble() < escapeRate;
 
     private static FtUnit CreateUnit(
-        TestProgram program, long seed, string lotId, FtSource source)
+        LatentStepSampler sampler,
+        string lotId,
+        FtSource source,
+        LatentWaferContext context)
     {
         var die = source.Result.Die;
-        var random = new SplitMix64(
-            DeterministicSeed.ForFtUnit(seed, lotId, source.WaferId, die.X, die.Y));
-        var tests = TestSampler.SampleAll(program.Items, ref random, siteNumber: 1);
-        return FtUnit.Create(source.WaferId, die, source.Result.Passed, tests, program.Bins);
+        var tests = sampler.SampleAll(
+            die, lotId, source.WaferId, siteNumber: 1, context);
+        return FtUnit.Create(
+            source.WaferId, die, source.Result.Passed, tests, sampler.Program.Bins);
     }
 
     private sealed record FtSource(string WaferId, CpDieResult Result);

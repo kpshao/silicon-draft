@@ -31,6 +31,42 @@ public sealed class CatalogTests
     }
 
     [Fact]
+    public void DefaultCatalogs_UsePhysicallyMotivatedDistributionPresets()
+    {
+        var dataset = Generate(TestConfigs.Valid);
+
+        AssertDistribution(dataset.CpProgram, "Vt", DistributionKind.Normal);
+        AssertDistribution(dataset.CpProgram, "Vtlin", DistributionKind.Normal);
+        AssertDistribution(dataset.CpProgram, "Idsat", DistributionKind.Lognormal);
+        AssertDistribution(dataset.CpProgram, "IdsatP", DistributionKind.Lognormal);
+        AssertDistribution(dataset.CpProgram, "Iddq", DistributionKind.Lognormal);
+        AssertDistribution(dataset.CpProgram, "Leakage", DistributionKind.Lognormal);
+        AssertDistribution(dataset.CpProgram, "Ioff", DistributionKind.Lognormal);
+        AssertDistribution(dataset.FtProgram, "Voh", DistributionKind.Normal);
+        AssertDistribution(dataset.FtProgram, "Icc", DistributionKind.Lognormal);
+        AssertDistribution(dataset.FtProgram, "Iil", DistributionKind.Lognormal);
+        AssertWatDistribution(dataset, "Vtn", DistributionKind.Normal);
+        AssertWatDistribution(dataset, "IdsatN", DistributionKind.Lognormal);
+        AssertWatDistribution(dataset, "IdsatP", DistributionKind.Lognormal);
+        AssertWatDistribution(dataset, "IoffN", DistributionKind.Lognormal);
+    }
+
+    private static void AssertDistribution(
+        TestProgram program, string name, DistributionKind kind)
+    {
+        var item = Assert.IsType<NumericTestItem>(
+            program.Items.Single(test => test.Name == name));
+        Assert.Equal(kind, item.Distribution.Kind);
+    }
+
+    private static void AssertWatDistribution(
+        Dataset dataset, string name, DistributionKind kind)
+    {
+        var item = dataset.WatProgram.Items.Single(test => test.Name == name);
+        Assert.Equal(kind, item.Distribution.Kind);
+    }
+
+    [Fact]
     public void EveryCatalogItem_DeclaresBusinessMeaningUnitLimitsAndDefaultDistribution()
     {
         var dataset = Generate(TestConfigs.Valid);
@@ -185,9 +221,9 @@ public sealed class CatalogTests
         var result = pipeline.Export(dataset, workspace.PathFor("dataset"));
         Assert.True(result.Success);
 
-        Assert.Equal("cp-catalog-v3", dataset.CpProgram.CatalogVersion);
+        Assert.Equal("cp-catalog-v4", dataset.CpProgram.CatalogVersion);
         Assert.Equal("ft-catalog-v2", dataset.FtProgram.CatalogVersion);
-        Assert.Equal("wat-catalog-v2", dataset.WatProgram.CatalogVersion);
+        Assert.Equal("wat-catalog-v3", dataset.WatProgram.CatalogVersion);
 
         using var manifest = JsonDocument.Parse(File.ReadAllText(result.ManifestPath!));
         var exported = manifest.RootElement.GetProperty("dataset");

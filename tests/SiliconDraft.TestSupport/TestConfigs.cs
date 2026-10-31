@@ -71,4 +71,20 @@ public static class TestConfigs
           "output": { "directory": "out" }
         }
         """;
+
+    /// <summary>Builds a valid configuration around an explicit <c>latent</c> section.</summary>
+    public static string WithLatent(
+        string latentJson,
+        string? waferJson = null,
+        string lotsJson = """[ { "id": "LOT-0001", "waferCount": 1 } ]""") => $$"""
+        {
+          "schemaVersion": 1,
+          "product": { "name": "DemoProduct" },
+          "seed": 42,
+          {{(waferJson is null ? string.Empty : $"\"wafer\": {waferJson},")}}
+          "latent": {{latentJson}},
+          "lots": {{lotsJson}},
+          "output": { "directory": "out" }
+        }
+        """;
 }

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "name": "LatentDemo"
+  },
+  "seed": 21,
+  "wafer": {
+    "diameterMm": 100,
+    "edgeExclusionMm": 0,
+    "die": {
+      "widthMm": 5,
+      "heightMm": 5,
+      "scribeMm": 0
+    }
+  },
+  "latent": {
+    "variance": {
+      "lot": 0.05,
+      "wafer": 0.1,
+      "spatial": 0.1,
+      "die": 0.6,
+      "measurement": 0.15
+    },
+    "spatialLoadings": [
+      {
+        "step": "cp",
+        "name": "Vt",
+        "loading": 1.5
+      },
+      {
+        "step": "ft",
+        "name": "Fmax",
+        "loading": 1.2
+      }
+    ],
+    "diePairs": [
+      {
+        "cpItem": "Idsat",
+        "ftItem": "Ioh",
+        "targetR": 0.65,
+        "tolerance": 0.05
+      },
+      {
+        "cpItem": "Vt",
+        "ftItem": "Fmax",
+        "targetR": -0.2,
+        "tolerance": 0.05
+      },
+      {
+        "cpItem": "Cin",
+        "ftItem": "Cin",
+        "targetR": 0.75,
+        "tolerance": 0.05
+      }
+    ]
+  },
+  "lots": [
+    {
+      "id": "LOT-0001",
+      "waferCount": 2
+    },
+    {
+      "id": "LOT-0002",
+      "waferCount": 2
+    }
+  ],
+  "output": {
+    "directory": "../out"
+  }
+}

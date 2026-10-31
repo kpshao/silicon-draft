@@ -16,6 +16,7 @@ public sealed record ResolvedConfig
         CpConfig cp,
         FtConfig ft,
         WatConfig wat,
+        LatentConfig latent,
         OutputConfig output)
     {
         SchemaVersion = schemaVersion;
@@ -26,6 +27,7 @@ public sealed record ResolvedConfig
         Cp = cp;
         Ft = ft;
         Wat = wat;
+        Latent = latent;
         Output = output;
     }
 
@@ -44,6 +46,9 @@ public sealed record ResolvedConfig
     public FtConfig Ft { get; }
 
     public WatConfig Wat { get; }
+
+    /// <summary>The effective latent-factor variance decomposition and correlation pairs.</summary>
+    public LatentConfig Latent { get; }
 
     public OutputConfig Output { get; }
 }

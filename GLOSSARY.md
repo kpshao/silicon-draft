@@ -155,6 +155,27 @@ WAT 的 wafer 统计量与其 CP 或 FT 的 wafer 统计量之间的相关性。
 **Spatial Field（空间场）**：
 在晶圆内部由 test item 共享的变异，与 die 级噪声分开。
 
+**Spatial Loading（空间载荷）**：
+Test Item 对共享 Spatial Field 的敏感度；默认 1，放大时该项的 spatial 方差占比变大，其余层按比例缩放以保持总方差不变。
+
+**Variance Components（方差分量）**：
+一个 Test Item 的模型方差在 lot、wafer、spatial、die 和 measurement 五层的比例；五个分量之和为 1。
+_Avoid_: Variance weights
+
+**Die Correlation Pair（die 级关联对）**：
+一个 CP Test Item 与一个 FT Test Item 组成的关联对，带测量值尺度上的目标 r 和容差。
+_Avoid_: Correlation config
+
+**Target Correlation（目标相关性）**：
+配置希望关联对达到的 Pearson r。
+_Avoid_: Desired r
+
+**Achieved Correlation（实际相关性）**：
+根据生成数据计算、并写入 Ground-Truth Manifest 的 Pearson r。
+
+**Measurement Noise（测量噪声）**：
+每个 Test Item 每次测量独立、不被其他 item 或 die 共享的变异。
+
 **Defect Signature（缺陷图形）**：
 刻意注入的空间或时间图形，良率管理系统应当能够检测到它。
 _Avoid_: Anomaly, pattern
@@ -378,6 +399,27 @@ An unobserved process or quality variable that drives several test items and hen
 
 **Spatial Field**:
 The within-wafer variation shared by test items, separate from die-level noise.
+
+**Spatial Loading**:
+A Test Item's sensitivity to the shared Spatial Field; it defaults to 1, and a larger value raises the item's spatial variance share while the other layers are rescaled to keep total variance unchanged.
+
+**Variance Components**:
+The fractions of a Test Item's model variance contributed by the lot, wafer, spatial, die, and measurement layers; the five fractions sum to one.
+_Avoid_: Variance weights
+
+**Die Correlation Pair**:
+A CP Test Item paired with an FT Test Item, carrying a target r on the measurement scale and a tolerance.
+_Avoid_: Correlation config
+
+**Target Correlation**:
+The Pearson r a configured pair is meant to reach.
+_Avoid_: Desired r
+
+**Achieved Correlation**:
+The Pearson r computed from generated data and written to the ground-truth manifest.
+
+**Measurement Noise**:
+Variation that is independent for each measurement of each Test Item and shared with no other item or die.
 
 **Defect Signature**:
 A deliberately injected spatial or temporal pattern that a yield management system is expected to detect.

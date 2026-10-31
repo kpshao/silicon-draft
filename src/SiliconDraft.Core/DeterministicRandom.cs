@@ -11,14 +11,6 @@ namespace SiliconDraft.Core;
 /// </summary>
 internal static class DeterministicSeed
 {
-    public static ulong ForDie(long datasetSeed, string lotId, string waferId, int x, int y) =>
-        Hash(
-            datasetSeed,
-            lotId,
-            waferId,
-            x.ToString(CultureInfo.InvariantCulture),
-            y.ToString(CultureInfo.InvariantCulture));
-
     /// <summary>
     /// Chooses the Tester Site that tests a Die. The stream is independent of the test
     /// sampling stream so site assignment cannot change a Die's measured values.
@@ -50,15 +42,47 @@ internal static class DeterministicSeed
             "FT",
             "ESCAPE");
 
-    public static ulong ForFtUnit(long datasetSeed, string lotId, string waferId, int x, int y) =>
+    /// <summary>The lot-level latent factor shared by every Die in the Lot.</summary>
+    public static ulong ForLatentLot(long datasetSeed, string lotId) =>
+        Hash(datasetSeed, "LATENT", "LOT", lotId);
+
+    /// <summary>The wafer-level latent factor shared by every Die on the Wafer.</summary>
+    public static ulong ForLatentWafer(long datasetSeed, string lotId, string waferId) =>
+        Hash(datasetSeed, "LATENT", "WAFER", lotId, waferId);
+
+    /// <summary>The coefficients of the Spatial Field measured across one Wafer.</summary>
+    public static ulong ForSpatialField(long datasetSeed, string lotId, string waferId) =>
+        Hash(datasetSeed, "LATENT", "SPATIAL", lotId, waferId);
+
+    /// <summary>
+    /// The Die's step-specific latent stream. CP and FT have independent die residuals;
+    /// only the pair factors they share create a cross-step die-level correlation.
+    /// </summary>
+    public static ulong ForLatentDie(
+        long datasetSeed, TestStep step, string lotId, string waferId, int x, int y) =>
         Hash(
             datasetSeed,
+            "LATENT",
+            TestStepKey.For(step),
             lotId,
             waferId,
             x.ToString(CultureInfo.InvariantCulture),
-            y.ToString(CultureInfo.InvariantCulture),
-            "FT",
-            "UNIT");
+            y.ToString(CultureInfo.InvariantCulture));
+
+    /// <summary>
+    /// The Die-level factors shared by a configured CP-FT pair. The stream has no step
+    /// component, so both steps draw the same factors for the same Die.
+    /// </summary>
+    public static ulong ForLatentPair(
+        long datasetSeed, string lotId, string waferId, int x, int y) =>
+        Hash(
+            datasetSeed,
+            "LATENT",
+            "PAIR",
+            lotId,
+            waferId,
+            x.ToString(CultureInfo.InvariantCulture),
+            y.ToString(CultureInfo.InvariantCulture));
 
     private static ulong Hash(long datasetSeed, params string[] parts)
     {

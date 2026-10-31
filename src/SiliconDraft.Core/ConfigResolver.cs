@@ -102,6 +102,7 @@ internal static class ConfigResolver
         var cp = ResolveCp(document.Cp, errors);
         var ft = ResolveFt(document.Ft, cp.Bins, errors);
         var wat = ResolveWat(document.Wat, wafer, errors);
+        var latent = ResolveLatent(document.Latent, cp, ft, errors);
 
         if (errors.Count > 0)
         {
@@ -119,6 +120,7 @@ internal static class ConfigResolver
             cp,
             ft,
             wat!,
+            latent,
             new OutputConfig(outputDirectory!));
 
         return ConfigValidationResult.Valid(resolved);
@@ -316,6 +318,371 @@ internal static class ConfigResolver
 
         assigned[effectiveBin] = (itemName, reportedOnOverride ? path : null);
     }
+
+    private static LatentConfig ResolveLatent(
+        LatentDocument? latent, CpConfig cp, FtConfig ft, List<ConfigError> errors)
+    {
+        var variance = ResolveVariance(latent?.Variance, errors);
+        var pairEntries = ResolveDiePairs(latent?.DiePairs, errors);
+        var loadingEntries = ResolveSpatialLoadings(latent?.SpatialLoadings, errors);
+        var config = new LatentConfig(
+            variance,
+            pairEntries.Select(entry => entry.Pair).ToArray(),
+            loadingEntries.Select(entry => entry.Loading).ToArray());
+
+        ValidateLatent(config, pairEntries, loadingEntries, cp, ft, errors);
+        return config;
+    }
+
+    private static VarianceComponents ResolveVariance(
+        VarianceDocument? document, List<ConfigError> errors)
+    {
+        var defaults = VarianceComponents.Default;
+        var lot = document?.Lot ?? defaults.Lot;
+        var wafer = document?.Wafer ?? defaults.Wafer;
+        var spatial = document?.Spatial ?? defaults.Spatial;
+        var die = document?.Die ?? defaults.Die;
+        var measurement = document?.Measurement ?? defaults.Measurement;
+
+        var allValid = true;
+        allValid &= ValidateVarianceComponent(errors, "latent.variance.lot", lot);
+        allValid &= ValidateVarianceComponent(errors, "latent.variance.wafer", wafer);
+        allValid &= ValidateVarianceComponent(errors, "latent.variance.spatial", spatial);
+        allValid &= ValidateVarianceComponent(errors, "latent.variance.die", die);
+        allValid &= ValidateVarianceComponent(errors, "latent.variance.measurement", measurement);
+
+        if (allValid && Math.Abs(lot + wafer + spatial + die + measurement - 1) > 1e-9)
+        {
+            errors.Add(new ConfigError(
+                "latent.variance", "the five variance components must sum to 1"));
+        }
+
+        return new VarianceComponents(lot, wafer, spatial, die, measurement);
+    }
+
+    private static bool ValidateVarianceComponent(
+        List<ConfigError> errors, string path, double value)
+    {
+        if (!double.IsFinite(value) || value < 0)
+        {
+            errors.Add(new ConfigError(path, "must be a finite number greater than or equal to 0"));
+            return false;
+        }
+
+        return true;
+    }
+
+    private static List<SpatialLoadingEntry> ResolveSpatialLoadings(
+        List<SpatialLoadingDocument?>? documents, List<ConfigError> errors)
+    {
+        var entries = new List<SpatialLoadingEntry>();
+        if (documents is null)
+        {
+            return entries;
+        }
+
+        var seen = new HashSet<(TestStep Step, string Item)>();
+        for (var index = 0; index < documents.Count; index++)
+        {
+            var path = $"latent.spatialLoadings[{index}]";
+            var document = documents[index];
+            if (document is null)
+            {
+                errors.Add(new ConfigError(path, "required"));
+                continue;
+            }
+
+            var initialErrorCount = errors.Count;
+            var step = TestStep.Cp;
+            if (document.Step is null)
+            {
+                errors.Add(new ConfigError($"{path}.step", "required"));
+            }
+            else if (!TryParseTestStep(document.Step, out step))
+            {
+                errors.Add(new ConfigError($"{path}.step", "must be one of 'cp' or 'ft'"));
+            }
+
+            var name = document.Name?.Trim();
+            if (string.IsNullOrEmpty(name))
+            {
+                errors.Add(new ConfigError($"{path}.name", "required"));
+            }
+            else
+            {
+                ValidateExportedText(name, $"{path}.name", errors);
+            }
+
+            var loading = 0.0;
+            if (document.Loading is not double configuredLoading)
+            {
+                errors.Add(new ConfigError($"{path}.loading", "required"));
+            }
+            else if (!double.IsFinite(configuredLoading) || configuredLoading < 0)
+            {
+                errors.Add(new ConfigError(
+                    $"{path}.loading", "must be a finite number greater than or equal to 0"));
+            }
+            else
+            {
+                loading = configuredLoading;
+            }
+
+            if (errors.Count > initialErrorCount)
+            {
+                continue;
+            }
+
+            if (!seen.Add((step, name!)))
+            {
+                errors.Add(new ConfigError(
+                    path, $"duplicate spatial loading for '{name}'"));
+                continue;
+            }
+
+            entries.Add(new SpatialLoadingEntry(
+                new SpatialLoading(step, name!, loading), path));
+        }
+
+        return entries;
+    }
+
+    private static bool TryParseTestStep(string value, out TestStep step)
+    {
+        switch (value)
+        {
+            case "cp":
+                step = TestStep.Cp;
+                return true;
+            case "ft":
+                step = TestStep.Ft;
+                return true;
+            default:
+                step = TestStep.Cp;
+                return false;
+        }
+    }
+
+    private static List<DiePairEntry> ResolveDiePairs(
+        List<DiePairDocument?>? documents, List<ConfigError> errors)
+    {
+        var entries = new List<DiePairEntry>();
+        if (documents is null)
+        {
+            entries.AddRange(LatentConfig.DefaultDiePairs.Select(
+                pair => new DiePairEntry(pair, "latent.diePairs")));
+            return entries;
+        }
+
+        var seen = new HashSet<(string CpItem, string FtItem)>();
+        for (var index = 0; index < documents.Count; index++)
+        {
+            var path = $"latent.diePairs[{index}]";
+            var document = documents[index];
+            if (document is null)
+            {
+                errors.Add(new ConfigError(path, "required"));
+                continue;
+            }
+
+            var initialErrorCount = errors.Count;
+            var cpItem = document.CpItem?.Trim();
+            if (string.IsNullOrEmpty(cpItem))
+            {
+                errors.Add(new ConfigError($"{path}.cpItem", "required"));
+            }
+            else
+            {
+                ValidateExportedText(cpItem, $"{path}.cpItem", errors);
+            }
+
+            var ftItem = document.FtItem?.Trim();
+            if (string.IsNullOrEmpty(ftItem))
+            {
+                errors.Add(new ConfigError($"{path}.ftItem", "required"));
+            }
+            else
+            {
+                ValidateExportedText(ftItem, $"{path}.ftItem", errors);
+            }
+
+            var targetR = 0.0;
+            if (document.TargetR is not double configuredTarget)
+            {
+                errors.Add(new ConfigError($"{path}.targetR", "required"));
+            }
+            else if (!double.IsFinite(configuredTarget) || configuredTarget is < -1 or > 1)
+            {
+                errors.Add(new ConfigError($"{path}.targetR", "must be between -1 and 1"));
+            }
+            else
+            {
+                targetR = configuredTarget;
+            }
+
+            var tolerance = DieCorrelationPair.DefaultTolerance;
+            if (document.Tolerance is double configuredTolerance)
+            {
+                if (!double.IsFinite(configuredTolerance) || configuredTolerance <= 0)
+                {
+                    errors.Add(new ConfigError(
+                        $"{path}.tolerance", "must be a finite number greater than 0"));
+                }
+                else
+                {
+                    tolerance = configuredTolerance;
+                }
+            }
+
+            if (errors.Count > initialErrorCount)
+            {
+                continue;
+            }
+
+            if (!seen.Add((cpItem!, ftItem!)))
+            {
+                errors.Add(new ConfigError(
+                    path, $"duplicate die-level pair '{cpItem}' / '{ftItem}'"));
+                continue;
+            }
+
+            entries.Add(new DiePairEntry(
+                new DieCorrelationPair(cpItem!, ftItem!, targetR, tolerance), path));
+        }
+
+        return entries;
+    }
+
+    private static void ValidateLatent(
+        LatentConfig config,
+        IReadOnlyList<DiePairEntry> pairEntries,
+        IReadOnlyList<SpatialLoadingEntry> loadingEntries,
+        CpConfig cp,
+        FtConfig ft,
+        List<ConfigError> errors)
+    {
+        if (pairEntries.Count == 0 && loadingEntries.Count == 0)
+        {
+            return;
+        }
+
+        var cpProgram = CpCatalog.Resolve(cp);
+        var ftProgram = FtCatalog.CreateProgram(ft, cp.Bins);
+        var cpItems = cpProgram.Items
+            .OfType<NumericTestItem>()
+            .ToDictionary(item => item.Name, StringComparer.Ordinal);
+        var ftItems = ftProgram.Items
+            .OfType<NumericTestItem>()
+            .ToDictionary(item => item.Name, StringComparer.Ordinal);
+
+        ValidateSpatialLoadings(loadingEntries, cpItems, ftItems, errors);
+        ValidateDiePairs(config, pairEntries, cpItems, ftItems, errors);
+    }
+
+    private static void ValidateSpatialLoadings(
+        IReadOnlyList<SpatialLoadingEntry> entries,
+        IReadOnlyDictionary<string, NumericTestItem> cpItems,
+        IReadOnlyDictionary<string, NumericTestItem> ftItems,
+        List<ConfigError> errors)
+    {
+        foreach (var entry in entries)
+        {
+            var loading = entry.Loading;
+            var items = loading.Step == TestStep.Cp ? cpItems : ftItems;
+            if (!items.ContainsKey(loading.Name))
+            {
+                errors.Add(new ConfigError(
+                    $"{entry.Path}.name",
+                    $"must name a numeric {TestStepKey.For(loading.Step)} test item; " +
+                    $"'{loading.Name}' is not one"));
+            }
+        }
+    }
+
+    private static void ValidateDiePairs(
+        LatentConfig config,
+        IReadOnlyList<DiePairEntry> entries,
+        IReadOnlyDictionary<string, NumericTestItem> cpItems,
+        IReadOnlyDictionary<string, NumericTestItem> ftItems,
+        List<ConfigError> errors)
+    {
+        var loadings = config.SpatialLoadings.ToDictionary(
+            loading => (loading.Step, loading.Name),
+            loading => loading.Loading);
+        var dieBudgets = new Dictionary<(TestStep Step, string Item), double>();
+        foreach (var entry in entries)
+        {
+            var pair = entry.Pair;
+            var cpItem = cpItems.GetValueOrDefault(pair.CpItem);
+            var ftItem = ftItems.GetValueOrDefault(pair.FtItem);
+            if (cpItem is null)
+            {
+                errors.Add(new ConfigError(
+                    $"{entry.Path}.cpItem",
+                    $"must name a numeric CP test item; '{pair.CpItem}' is not one"));
+            }
+
+            if (ftItem is null)
+            {
+                errors.Add(new ConfigError(
+                    $"{entry.Path}.ftItem",
+                    $"must name a numeric FT test item; '{pair.FtItem}' is not one"));
+            }
+
+            if (cpItem is null || ftItem is null)
+            {
+                continue;
+            }
+
+            var cpLoading = loadings.GetValueOrDefault((TestStep.Cp, pair.CpItem), 1.0);
+            var ftLoading = loadings.GetValueOrDefault((TestStep.Ft, pair.FtItem), 1.0);
+            var dieR = LatentCorrelation.RequiredDieCorrelation(
+                cpItem.Distribution,
+                ftItem.Distribution,
+                config.Variance,
+                cpLoading,
+                ftLoading,
+                pair.TargetR);
+            if (dieR is not double required)
+            {
+                errors.Add(new ConfigError(
+                    $"{entry.Path}.targetR",
+                    "the configured variance components cannot reach this correlation"));
+                continue;
+            }
+
+            AddDieBudget(errors, dieBudgets, entry.Path, TestStep.Cp, pair.CpItem, required);
+            AddDieBudget(errors, dieBudgets, entry.Path, TestStep.Ft, pair.FtItem, required);
+        }
+    }
+
+    private static void AddDieBudget(
+        List<ConfigError> errors,
+        Dictionary<(TestStep Step, string Item), double> budgets,
+        string path,
+        TestStep step,
+        string itemName,
+        double required)
+    {
+        var key = (step, itemName);
+        var total = budgets.GetValueOrDefault(key) + Math.Abs(required);
+        if (total > 1 + 1e-9)
+        {
+            errors.Add(new ConfigError(
+                $"{path}.{(step == TestStep.Cp ? "cpItem" : "ftItem")}",
+                $"die-level variance budget for {TestStepKey.For(step)} item '{itemName}' " +
+                "is exceeded; reduce the targetR of the pairs that use it"));
+            return;
+        }
+
+        budgets[key] = total;
+    }
+
+    /// <summary>A configured die-level pair together with the path it came from.</summary>
+    private readonly record struct DiePairEntry(DieCorrelationPair Pair, string Path);
+
+    /// <summary>A configured Spatial Field loading together with the path it came from.</summary>
+    private readonly record struct SpatialLoadingEntry(SpatialLoading Loading, string Path);
 
     private static WatConfig? ResolveWat(
         WatDocument? wat, WaferGeometry? wafer, List<ConfigError> errors)
