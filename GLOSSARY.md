@@ -47,6 +47,14 @@ _Avoid_: Leakage
 **CP-FT Traceability（CP-FT 追溯）**：
 将每个 FT Unit 映射回其来源晶圆与 die 坐标的能力。
 
+**CP CSV（CP 数据 CSV）**：
+一个 Wafer 的 CP 结果的可读表格导出，用于人工检查生成效果；不是 YMS 的导入格式。
+_Avoid_: CP report
+
+**FT CSV（FT 数据 CSV）**：
+一个 Wafer 来源的 FT Unit 结果的可读表格导出，包含来源 Die 的 CP 结果，用于人工检查生成效果；不是 YMS 的导入格式。
+_Avoid_: FT report
+
 ### 测试步骤与测试项
 
 **CP（Circuit Probe）**：
@@ -291,6 +299,14 @@ _Avoid_: Leakage
 
 **CP-FT Traceability**:
 The ability to map every FT unit back to its originating wafer and die coordinates.
+
+**CP CSV**:
+A readable tabular export of one Wafer's CP results for human inspection of generated data; not a YMS ingestion format.
+_Avoid_: CP report
+
+**FT CSV**:
+A readable tabular export of the FT Units sourced from one Wafer, including the source Die's CP outcome, for human inspection of generated data; not a YMS ingestion format.
+_Avoid_: FT report
 
 ### Test steps and items
 

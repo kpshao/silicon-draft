@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace SiliconDraft.Core;
 
-/// <summary>Writes a Dataset's ground-truth manifest and its per-lot exports.</summary>
+/// <summary>Writes a Dataset's ground-truth manifest and its per-lot and per-wafer exports.</summary>
 internal static class DatasetWriter
 {
     public const int ManifestSchemaVersion = 8;
@@ -32,6 +32,15 @@ internal static class DatasetWriter
             .ToArray();
         var watFiles = WatTxtWriter.Plan(dataset, outputDirectory);
         var watPaths = watFiles.Select(file => file.Path).ToArray();
+        var csvDirectory = Path.Combine(outputDirectory, TestDataCsvWriter.DirectoryName);
+        var cpCsvPaths = dataset.Lots
+            .SelectMany(lot => lot.Wafers.Select(
+                wafer => Path.Combine(csvDirectory, TestDataCsvWriter.CpFileName(wafer.Id))))
+            .ToArray();
+        var ftCsvPaths = dataset.Lots
+            .SelectMany(lot => lot.Wafers.Select(
+                wafer => Path.Combine(csvDirectory, TestDataCsvWriter.FtFileName(wafer.Id))))
+            .ToArray();
 
         if (!overwrite)
         {
@@ -40,6 +49,8 @@ internal static class DatasetWriter
                 .Concat(cpStdfPaths)
                 .Concat(ftPaths)
                 .Concat(watPaths)
+                .Concat(cpCsvPaths)
+                .Concat(ftCsvPaths)
                 .FirstOrDefault(File.Exists);
             if (existing is not null)
             {
@@ -49,11 +60,24 @@ internal static class DatasetWriter
         }
 
         Directory.CreateDirectory(outputDirectory);
+        Directory.CreateDirectory(csvDirectory);
+        var csvIndex = 0;
         for (var index = 0; index < dataset.Lots.Count; index++)
         {
-            WaferMapCsvWriter.Write(waferMapPaths[index], dataset.Lots[index]);
-            StdfCpWriter.Write(cpStdfPaths[index], dataset, dataset.Lots[index]);
-            StdfFtWriter.Write(ftPaths[index], dataset, dataset.Lots[index]);
+            var lot = dataset.Lots[index];
+            WaferMapCsvWriter.Write(waferMapPaths[index], lot);
+            StdfCpWriter.Write(cpStdfPaths[index], dataset, lot);
+            StdfFtWriter.Write(ftPaths[index], dataset, lot);
+            foreach (var wafer in lot.Wafers)
+            {
+                TestDataCsvWriter.WriteCp(cpCsvPaths[csvIndex], dataset, lot, wafer);
+                var units = lot.FtUnits
+                    .Where(unit => string.Equals(
+                        unit.SourceWaferId, wafer.Id, StringComparison.Ordinal))
+                    .ToArray();
+                TestDataCsvWriter.WriteFt(ftCsvPaths[csvIndex], dataset, lot, wafer, units);
+                csvIndex++;
+            }
         }
 
         foreach (var watFile in watFiles)
@@ -72,7 +96,14 @@ internal static class DatasetWriter
         var json = JsonSerializer.Serialize(manifest, JsonOptions).ReplaceLineEndings("\n") + "\n";
         File.WriteAllText(manifestPath, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-        return ExportResult.Exported(manifestPath, waferMapPaths, cpStdfPaths, ftPaths, watPaths);
+        return ExportResult.Exported(
+            manifestPath,
+            waferMapPaths,
+            cpStdfPaths,
+            ftPaths,
+            watPaths,
+            cpCsvPaths,
+            ftCsvPaths);
     }
 
     private sealed record ManifestDocument(

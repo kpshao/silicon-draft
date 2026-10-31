@@ -29,6 +29,8 @@ public sealed class GoldenExportTests
         AssertGolden("LOT-0001_CP.stdf", Assert.Single(result.CpStdfPaths));
         AssertGolden("LOT-0001_FT.stdf", Assert.Single(result.FtPaths));
         AssertGolden("LOT-0001_WAT_long.txt", Assert.Single(result.WatPaths));
+        AssertGolden(Path.Combine("csv", "LOT-0001-W01_CP.csv"), Assert.Single(result.CpCsvPaths));
+        AssertGolden(Path.Combine("csv", "LOT-0001-W01_FT.csv"), Assert.Single(result.FtCsvPaths));
     }
 
     [Fact]

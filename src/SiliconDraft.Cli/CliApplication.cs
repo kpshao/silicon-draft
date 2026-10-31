@@ -105,6 +105,20 @@ public static class CliApplication
                 stdout.WriteLine($"WAT: {watPath}");
             }
 
+            if (export.CpCsvPaths.Count > 0)
+            {
+                stdout.WriteLine(
+                    $"CSV CP: {Quantity(export.CpCsvPaths.Count, "file")} in " +
+                    $"{Path.GetDirectoryName(export.CpCsvPaths[0])}");
+            }
+
+            if (export.FtCsvPaths.Count > 0)
+            {
+                stdout.WriteLine(
+                    $"CSV FT: {Quantity(export.FtCsvPaths.Count, "file")} in " +
+                    $"{Path.GetDirectoryName(export.FtCsvPaths[0])}");
+            }
+
             return ExitSuccess;
         }
         catch (Exception ex)

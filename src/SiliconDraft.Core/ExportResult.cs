@@ -7,6 +7,8 @@ public sealed record ExportResult(
     IReadOnlyList<string> CpStdfPaths,
     IReadOnlyList<string> FtPaths,
     IReadOnlyList<string> WatPaths,
+    IReadOnlyList<string> CpCsvPaths,
+    IReadOnlyList<string> FtCsvPaths,
     string? Error)
 {
     public static ExportResult Exported(
@@ -14,9 +16,20 @@ public sealed record ExportResult(
         IReadOnlyList<string> waferMapPaths,
         IReadOnlyList<string> cpStdfPaths,
         IReadOnlyList<string> ftPaths,
-        IReadOnlyList<string> watPaths) =>
-        new(true, manifestPath, waferMapPaths, cpStdfPaths, ftPaths, watPaths, null);
+        IReadOnlyList<string> watPaths,
+        IReadOnlyList<string> cpCsvPaths,
+        IReadOnlyList<string> ftCsvPaths) =>
+        new(
+            true,
+            manifestPath,
+            waferMapPaths,
+            cpStdfPaths,
+            ftPaths,
+            watPaths,
+            cpCsvPaths,
+            ftCsvPaths,
+            null);
 
     public static ExportResult Failed(string error) =>
-        new(false, null, [], [], [], [], error);
+        new(false, null, [], [], [], [], [], [], error);
 }

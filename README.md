@@ -6,7 +6,7 @@ SiliconDraft 生成带有已知注入属性的合成 CP、FT 和 WAT 数据集�
 
 ## 状态
 
-版本化 JSON 配置经由 Core 的 `GenerationPipeline` facade 流转。`silicondraft generate` 默认写出一个 Ground-Truth Manifest、每个 Lot 一个 Wafer Map CSV、一个 STDF V4 CP 文件和一个 STDF V4 FT 文件，以及每个 Lot 一个 WAT TXT 文件；`silicondraft preview` 打印生效的晶圆几何、Die Map、CP 与 FT 汇总以及 WAT 布局，不写任何文件。
+版本化 JSON 配置经由 Core 的 `GenerationPipeline` facade 流转。`silicondraft generate` 默认写出一个 Ground-Truth Manifest、每个 Lot 一个 Wafer Map CSV、一个 STDF V4 CP 文件和一个 STDF V4 FT 文件、每个 Lot 一个 WAT TXT 文件，以及 `csv/` 下每个 Wafer 的 CP CSV 和 FT CSV；`silicondraft preview` 打印生效的晶圆几何、Die Map、CP 与 FT 汇总以及 WAT 布局，不写任何文件。
 
 ## 要求
 
@@ -25,7 +25,7 @@ dotnet test
 dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -o out
 ```
 
-这会写出 `out/_truth/manifest.json`、`out/LOT-0001_wafermap.csv`、`out/LOT-0001_CP.stdf`、`out/LOT-0001_FT.stdf` 和 `out/LOT-0001_WAT_long.txt`。manifest 记录 Resolved Config（包含生效的晶圆几何、CP 设置、FT 设置和 WAT sites）、seed、Dataset 身份、每个 wafer、lot 和 Dataset 的 Gross/Partial Die 计数与 Net Die，以及每个 lot 和 Dataset 的 CP 与 FT 良率和 Bin 计数。它还记录 FT catalog 版本、每个 Dataset、lot 和 wafer 的 FT Unit 与 Escape 计数，以及每个 Dataset 和 lot 的 Assembly Loss，还有 WAT catalog 版本、site 与 test item 计数，以及每个 Dataset、lot 和 wafer 的测量计数。`dataset.correlations.die` 记录每个 die 级 CP-FT 关联对的目标 r、容差、实际 r 与样本数。Net Die 是通过 CP 的有效 die 数。Wafer Map CSV 列出每个导出的 die 及其 Die Index 坐标、物理中心和 valid/partial 状态。STDF V4 CP 文件包含 FAR、MIR、SDR，每个 Wafer 的 WIR/WCR，每个受测 die 一组 PIR、按 item 类型生成的 PTR 或 FTR、以及 PRR，每个 Wafer 的 WRR，随后是 TSR/HBR/SBR/PCR 汇总，最后由 MRR 收尾。STDF V4 FT 文件包含 FAR、每个 FT Unit 一条 ATR、MIR、SDR，每个 FT Unit 一组 PIR、PTR 或 FTR、以及 PRR，以及相同的 lot 汇总和 MRR；FT 是封装测试，不写 WIR/WCR/WRR。WAT TXT 文件每个 PCM Site 和 Test Item 一行。相同配置与 seed 总是产生相同的文件。
+这会写出 `out/_truth/manifest.json`、`out/LOT-0001_wafermap.csv`、`out/LOT-0001_CP.stdf`、`out/LOT-0001_FT.stdf`、`out/LOT-0001_WAT_long.txt`、`out/csv/LOT-0001-W01_CP.csv` 和 `out/csv/LOT-0001-W01_FT.csv`。manifest 记录 Resolved Config（包含生效的晶圆几何、CP 设置、FT 设置和 WAT sites）、seed、Dataset 身份、每个 wafer、lot 和 Dataset 的 Gross/Partial Die 计数与 Net Die，以及每个 lot 和 Dataset 的 CP 与 FT 良率和 Bin 计数。它还记录 FT catalog 版本、每个 Dataset、lot 和 wafer 的 FT Unit 与 Escape 计数，以及每个 Dataset 和 lot 的 Assembly Loss，还有 WAT catalog 版本、site 与 test item 计数，以及每个 Dataset、lot 和 wafer 的测量计数。`dataset.correlations.die` 记录每个 die 级 CP-FT 关联对的目标 r、容差、实际 r 与样本数。Net Die 是通过 CP 的有效 die 数。Wafer Map CSV 列出每个导出的 die 及其 Die Index 坐标、物理中心和 valid/partial 状态。STDF V4 CP 文件包含 FAR、MIR、SDR，每个 Wafer 的 WIR/WCR，每个受测 die 一组 PIR、按 item 类型生成的 PTR 或 FTR、以及 PRR，每个 Wafer 的 WRR，随后是 TSR/HBR/SBR/PCR 汇总，最后由 MRR 收尾。STDF V4 FT 文件包含 FAR、每个 FT Unit 一条 ATR、MIR、SDR，每个 FT Unit 一组 PIR、PTR 或 FTR、以及 PRR，以及相同的 lot 汇总和 MRR；FT 是封装测试，不写 WIR/WCR/WRR。WAT TXT 文件每个 PCM Site 和 Test Item 一行。相同配置与 seed 总是产生相同的文件。
 
 配置解析是严格的：未知属性、重复键、注释和尾随逗号都会被拒绝，每个错误都会指出出错的 JSON 路径。
 
@@ -181,6 +181,23 @@ Long TXT（`<stem>_WAT_long.txt`）在每个制表符分隔行上重复 site、T
 
 文件 stem 默认是 Lot id（`LOT-0001_WAT_long.txt`），或在 `perWafer` 时是 Wafer id（`LOT-0001-W01_WAT_long.txt`）。manifest 记录 WAT catalog 版本、site 与 test item 计数以及测量计数；导出字段始终与该 catalog 版本一致。格式记录在 [ADR-0009](docs/adr/0009-wat-txt-export.md)。宽表、按 Wafer 的配置参见 [`examples/wat.json`](examples/wat.json)。
 
+## CP/FT CSV 导出
+
+`generate` 为每个 Wafer 的 CP 和 FT 结果各写一个便于人工查看的 CSV，放在输出目录的 `csv/` 子目录：
+
+- `<waferId>_CP.csv`：一行一个 tested die。
+- `<waferId>_FT.csv`：一行一个 FT Unit（含 Escape）；没有 FT Unit 的 Wafer 仍写出文件，只有元数据与列头。
+
+每个文件以 `#` 开头的元数据块开始，记录 `formatVersion`、`step`、`product`、`lotId`、`waferId`、`seed`、`catalogVersion`、`siteCount`、计数与良率，以及每个 Test Item 的编号、类型、单位、spec/test limits 和失败 Soft Bin，还有 Hard/Soft Bin 定义。FT 文件还记录 `assemblyLot`、`cpPassedDie`、`assemblyLoss`、`escapeUnits`、`ftUnits` 和 `passedUnits`，并与 `cpPassedDie - assemblyLoss + escapeUnits = ftUnits` 对账。元数据块之后是一个空行，然后是标准 CSV 宽表数据块。
+
+- CP 数据列：`dieX`、`dieY`、`site`、`hardBin`、`softBin`、`pass`、`firstFail`，随后每个 Test Item 一列。只包含 tested die，行按 Y→X 排序。
+- FT 数据列：`unitId`、`dieX`、`dieY`、`cpResult`、`site`、`hardBin`、`softBin`、`pass`、`firstFail`，随后每个 FT Test Item 一列。`cpResult` 是来源 Die 的 CP 结果，`Fail` 表示 Escape；FT 的 `site` 恒为 1。
+- Functional Test Item 的值写作 `1`/`0`；`firstFail` 是第一个失败 item 名，通过时为空。
+- 数值使用 invariant culture 的 `0.######`；字段按 RFC 4180 转义，`unitId` 内含逗号因此带引号。
+- CSV 用于人工检查，不是 YMS 导入格式；STDF 仍是标准导入路径。
+
+CSV 默认随 `generate` 写出，不新增配置项；`--overwrite` 同样保护既有 CSV。格式决策记录在 [ADR-0014](docs/adr/0014-cp-ft-csv-export.md)。
+
 ## CLI
 
 ```text
@@ -215,7 +232,7 @@ SiliconDraft generates synthetic CP, FT, and WAT datasets with known injected pr
 
 ## Status
 
-A versioned JSON configuration flows through the Core `GenerationPipeline` facade. `silicondraft generate` writes a ground-truth manifest, one Wafer Map CSV, one STDF V4 CP file, and one STDF V4 FT file per lot, and one WAT TXT file per lot by default; `silicondraft preview` prints the effective wafer geometry, Die Map, CP and FT summaries, and WAT layout without writing files.
+A versioned JSON configuration flows through the Core `GenerationPipeline` facade. `silicondraft generate` writes a ground-truth manifest, one Wafer Map CSV, one STDF V4 CP file, and one STDF V4 FT file per lot, one WAT TXT file per lot, and one CP CSV and FT CSV per Wafer under `csv/` by default; `silicondraft preview` prints the effective wafer geometry, Die Map, CP and FT summaries, and WAT layout without writing files.
 
 ## Requirements
 
@@ -234,7 +251,7 @@ dotnet test
 dotnet run --project src/SiliconDraft.Cli -- generate -c examples/minimal.json -o out
 ```
 
-This writes `out/_truth/manifest.json`, `out/LOT-0001_wafermap.csv`, `out/LOT-0001_CP.stdf`, `out/LOT-0001_FT.stdf`, and `out/LOT-0001_WAT_long.txt`. The manifest records the Resolved Config (including the effective wafer geometry, CP settings, FT settings, and WAT sites), the seed, the Dataset identity, Gross/Partial Die counts and Net Die per wafer, lot, and Dataset, plus CP and FT yield and Bin counts per lot and Dataset. It also records the FT catalog version, the FT Unit and Escape counts per Dataset, lot, and wafer, and the Assembly Loss per Dataset and lot, plus the WAT catalog version, site and test item counts, and measurement counts per Dataset, lot, and wafer. `dataset.correlations.die` records each die-level CP-FT pair's target r, tolerance, achieved r, and sample count. Net Die is the number of valid die that pass CP. The Wafer Map CSV lists every exported die with its Die Index coordinates, physical center, and valid/partial status. The STDF V4 CP file contains FAR, MIR, SDR, WIR/WCR per Wafer, one PIR, PTR or FTR depending on the item type, and PRR group per tested die, WRR per Wafer, the TSR/HBR/SBR/PCR summaries, and MRR. The STDF V4 FT file contains FAR, one ATR per FT Unit, MIR, SDR, one PIR, PTR or FTR, and PRR group per FT Unit, the same lot summaries, and MRR; FT is package test, so it has no WIR/WCR/WRR. The WAT TXT file contains one row per PCM Site and Test Item. The same configuration and seed always produce the same files.
+This writes `out/_truth/manifest.json`, `out/LOT-0001_wafermap.csv`, `out/LOT-0001_CP.stdf`, `out/LOT-0001_FT.stdf`, `out/LOT-0001_WAT_long.txt`, `out/csv/LOT-0001-W01_CP.csv`, and `out/csv/LOT-0001-W01_FT.csv`. The manifest records the Resolved Config (including the effective wafer geometry, CP settings, FT settings, and WAT sites), the seed, the Dataset identity, Gross/Partial Die counts and Net Die per wafer, lot, and Dataset, plus CP and FT yield and Bin counts per lot and Dataset. It also records the FT catalog version, the FT Unit and Escape counts per Dataset, lot, and wafer, and the Assembly Loss per Dataset and lot, plus the WAT catalog version, site and test item counts, and measurement counts per Dataset, lot, and wafer. `dataset.correlations.die` records each die-level CP-FT pair's target r, tolerance, achieved r, and sample count. Net Die is the number of valid die that pass CP. The Wafer Map CSV lists every exported die with its Die Index coordinates, physical center, and valid/partial status. The STDF V4 CP file contains FAR, MIR, SDR, WIR/WCR per Wafer, one PIR, PTR or FTR depending on the item type, and PRR group per tested die, WRR per Wafer, the TSR/HBR/SBR/PCR summaries, and MRR. The STDF V4 FT file contains FAR, one ATR per FT Unit, MIR, SDR, one PIR, PTR or FTR, and PRR group per FT Unit, the same lot summaries, and MRR; FT is package test, so it has no WIR/WCR/WRR. The WAT TXT file contains one row per PCM Site and Test Item. The same configuration and seed always produce the same files.
 
 Configuration parsing is strict: unknown properties, duplicate keys, comments, and trailing commas are rejected, and every error names the offending JSON path.
 
@@ -389,6 +406,23 @@ The built-in complete WAT catalog v1 (`wat-catalog-v3`) has 12 Numeric Test Item
 Long TXT (`<stem>_WAT_long.txt`) repeats site, Test Item, value, unit, and limits on every tab-separated row: `lotId`, `waferId`, `site`, `siteXmm`, `siteYmm`, `testItem`, `testNumber`, `value`, `unit`, `lowSpec`, `highSpec`, `lowTest`, `highTest`. Wide TXT (`<stem>_WAT_wide.txt`) writes one row per site per wafer, puts each Test Item value in its own column, and records each item's number, unit, spec limits, and test limits in a leading `#` definition block. Both formats start with `# catalogVersion=<version>`.
 
 The file stem is the Lot id by default (`LOT-0001_WAT_long.txt`) or the Wafer id with `perWafer` (`LOT-0001-W01_WAT_long.txt`). The manifest records the WAT catalog version, site and test item counts, and measurement counts; the exported fields always match that catalog version. The format is recorded in [ADR-0009](docs/adr/0009-wat-txt-export.md). See [`examples/wat.json`](examples/wat.json) for a wide, per-Wafer configuration.
+
+## CP/FT CSV export
+
+`generate` writes one human-readable CSV per Wafer for CP and one for FT under the output directory's `csv/` subdirectory:
+
+- `<waferId>_CP.csv`: one row per tested die.
+- `<waferId>_FT.csv`: one row per FT Unit, including Escapes; a Wafer with no FT Units still gets a file with metadata and a header only.
+
+Each file starts with a `#`-prefixed metadata block recording `formatVersion`, `step`, `product`, `lotId`, `waferId`, `seed`, `catalogVersion`, `siteCount`, counts and yield, every Test Item's number, type, unit, spec/test limits, and failure Soft Bin, and the Hard/Soft Bin definitions. FT files also record `assemblyLot`, `cpPassedDie`, `assemblyLoss`, `escapeUnits`, `ftUnits`, and `passedUnits`, reconciling with `cpPassedDie - assemblyLoss + escapeUnits = ftUnits`. A blank line follows the metadata block, then the standard wide CSV data block.
+
+- CP data columns: `dieX`, `dieY`, `site`, `hardBin`, `softBin`, `pass`, `firstFail`, then one column per Test Item. Tested die only, ordered Y→X.
+- FT data columns: `unitId`, `dieX`, `dieY`, `cpResult`, `site`, `hardBin`, `softBin`, `pass`, `firstFail`, then one column per FT Test Item. `cpResult` is the source Die's CP outcome, and `Fail` marks an Escape; FT `site` is always 1.
+- Functional Test Item values are written as `1`/`0`; `firstFail` names the first failing item and is empty on a pass.
+- Values use invariant-culture `0.######`; fields follow RFC 4180 quoting, so `unitId` is quoted because it contains a comma.
+- The CSV is for human inspection, not a YMS ingestion format; STDF remains the standard import path.
+
+CSV files are written by `generate` by default; no new configuration option. `--overwrite` protects existing CSVs too. The format decision is recorded in [ADR-0014](docs/adr/0014-cp-ft-csv-export.md).
 
 ## CLI
 
