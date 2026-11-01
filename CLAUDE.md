@@ -23,3 +23,7 @@ Five canonical triage labels use their default strings: `needs-triage`, `needs-i
 ### Domain docs
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Exports
+
+Changing an output format: read `docs/agents/exports.md`.
